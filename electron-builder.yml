@@ -1,0 +1,24 @@
+appId: local.taswidget
+productName: TAS Widget
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+extraResources:
+  - from: resources
+    to: .
+win:
+  target:
+    - nsis
+    - portable
+  icon: resources/icon.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: TAS Widget
+  artifactName: "TAS Widget Setup ${version}.exe"
+  deleteAppDataOnUninstall: false
+portable:
+  artifactName: "TAS Widget ${version} Portable.exe"

@@ -1,0 +1,43 @@
+{
+  "name": "tas-widget",
+  "productName": "TAS Widget",
+  "version": "0.7.0",
+  "description": "TAS Widget — desktop widgets for Windows: weather, music, clock, weekday, calendar, astro, tarot, dice, equalizer, todo, sims, finance, twitch, system",
+  "main": "./out/main/index.js",
+  "author": "TheAndrSon",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TheAndrSon/tas-widget.git"
+  },
+  "homepage": "https://github.com/TheAndrSon/tas-widget#readme",
+  "bugs": {
+    "url": "https://github.com/TheAndrSon/tas-widget/issues"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dist": "npm run build && electron-builder --win",
+    "dist:dir": "npm run build && electron-builder --dir",
+    "dist:one": "npm run dist && powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-launcher.ps1"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "systeminformation": "^5.33.19"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^6.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.6"
+  }
+}

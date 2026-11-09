@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Сетка TAS Widget</title>
+    <style>
+      :root {
+        --step: 16px;
+        --line: rgba(130, 190, 255, 0.16);
+        --line-strong: rgba(130, 190, 255, 0.3);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+        font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+      }
+      .grid {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(to right, var(--line) 1px, transparent 1px),
+          linear-gradient(to bottom, var(--line) 1px, transparent 1px),
+          linear-gradient(to right, var(--line-strong) 1px, transparent 1px),
+          linear-gradient(to bottom, var(--line-strong) 1px, transparent 1px);
+        background-size:
+          var(--step) var(--step),
+          var(--step) var(--step),
+          calc(var(--step) * 4) calc(var(--step) * 4),
+          calc(var(--step) * 4) calc(var(--step) * 4);
+        animation: grid-in 0.25s ease both;
+      }
+      .vignette {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(circle at center, transparent 55%, rgba(4, 8, 16, 0.22) 100%);
+      }
+      .center-lines {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(90deg, transparent calc(50% - 1px), var(--line-strong) 50%, transparent calc(50% + 1px)),
+          linear-gradient(0deg, transparent calc(50% - 1px), var(--line-strong) 50%, transparent calc(50% + 1px));
+        box-shadow: 0 0 12px rgba(130, 190, 255, 0.08);
+      }
+      .hud {
+        position: fixed;
+        left: 24px;
+        bottom: 24px;
+        max-width: 430px;
+        padding: 14px 16px;
+        border: 1px solid rgba(140, 200, 255, 0.28);
+        border-radius: 14px;
+        background: rgba(10, 16, 26, 0.82);
+        box-shadow: 0 10px 32px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        color: #eaf3ff;
+        backdrop-filter: blur(12px);
+        animation: hud-in 0.3s ease 0.1s both;
+      }
+      .hud__title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .hud__dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #62e6ff;
+        box-shadow: 0 0 10px #62e6ff;
+      }
+      .hud__sub {
+        margin-top: 4px;
+        color: rgba(225, 238, 255, 0.62);
+        font-size: 10.5px;
+        line-height: 1.45;
+      }
+      .hud__keys {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 5px 10px;
+        margin-top: 10px;
+        font-size: 10px;
+        color: rgba(225, 238, 255, 0.75);
+      }
+      kbd {
+        display: inline-block;
+        padding: 1px 5px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.07);
+        color: #fff;
+        font-family: inherit;
+        font-size: 9.5px;
+      }
+      .hud__step {
+        margin-top: 8px;
+        color: rgba(150, 220, 255, 0.75);
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      @keyframes grid-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes hud-in {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="grid"></div>
+    <div class="center-lines"></div>
+    <div class="vignette"></div>
+    <div class="hud">
+      <div class="hud__title"><span class="hud__dot"></span>Режим раскладки</div>
+      <div class="hud__sub">
+        Тяните виджеты за карточку. Сетка показывает центры монитора; привязки по умолчанию нет.
+      </div>
+      <div class="hud__keys">
+        <span><kbd>Клик</kbd></span><span>выбрать виджет</span>
+        <span><kbd>Стрелки</kbd></span><span>двигать на 1 px, удержание ускоряет</span>
+        <span><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>G</kbd></span><span>скрыть/показать сетку</span>
+        <span><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>W</kbd></span><span>выйти из режима раскладки</span>
+      </div>
+      <div class="hud__step" id="step">Шаг сетки: 16 px</div>
+    </div>
+    <script>
+      const hash = window.location.hash.replace(/^#/, '')
+      const step = Number(new URLSearchParams(hash.split('?')[1] || '').get('step') || 16)
+      document.documentElement.style.setProperty('--step', `${Math.max(4, step)}px`)
+      document.getElementById('step').textContent = `Шаг сетки: ${Math.max(4, step)} px`
+    </script>
+  </body>
+</html>
