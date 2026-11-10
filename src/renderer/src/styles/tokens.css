@@ -1,0 +1,21 @@
+:root {
+  --bg: #0b0e14;
+  --bg-elevated: #121722;
+  --panel: rgba(20, 25, 36, 0.92);
+  --panel-strong: #151b27;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text: #e9edf6;
+  --text-soft: #dbe3f2;
+  --muted: #8e99ad;
+  --muted-dim: #6b7688;
+  --accent: #4aa8ff;
+  --accent-soft: rgba(74, 168, 255, 0.16);
+  --success: #6ee7b7;
+  --danger: #ff7a8a;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-sm: 9px;
+  --shadow-widget: 0 12px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --font: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+}

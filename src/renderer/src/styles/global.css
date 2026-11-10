@@ -1,3 +1,5 @@
+@import './tokens.css';
+
 :root {
   color-scheme: dark;
 }
@@ -16,8 +18,8 @@ body {
   margin: 0;
   overflow: hidden;
   background: transparent;
-  color: #e9edf6;
-  font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  color: var(--text);
+  font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   user-select: none;
 }
@@ -28,12 +30,10 @@ body {
   gap: 9px;
   height: 100%;
   padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   background: linear-gradient(160deg, rgba(20, 24, 34, 0.94), rgba(9, 11, 17, 0.9));
-  box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: var(--shadow-widget);
   backdrop-filter: blur(16px);
 }
 
@@ -41,7 +41,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: #9aa4b8;
+  color: var(--muted);
   font-size: 12px;
   text-align: center;
 }

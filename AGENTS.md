@@ -22,10 +22,13 @@ electron-vite. Первый срез — системный виджет; дал
 - `src/main/ipc.ts` — контракт IPC (единственное место регистрации каналов)
 - `src/main/store.ts` — `settings.json`, нормализация, отложенное сохранение
 - `src/main/system-monitor.ts` — CPU/RAM/диски, опрос раз в `system.intervalMs`
-- `src/main/tray.ts` — трей: открыть/закрыть виджеты, выход
+- `src/main/tray.ts` — трей: открыть/закрыть виджеты, настройки, выход
+- `src/main/settings-window.ts` — отдельное окно настроек (одно на приложение)
 - `src/preload/index.ts` — мост `window.api`
 - `src/renderer/src/App.tsx` — роутинг по `?widget=<id>`
 - `src/renderer/src/widgets/<Name>Widget.tsx` — UI виджета + его css
+- `src/renderer/src/settings/SettingsApp.tsx` — окно настроек, вкладки по виджетам
+- `src/renderer/src/styles/tokens.css` — общие цвета, радиусы, тени
 - `src/shared/types.ts` — типы настроек и данных
 - `src/shared/widgets.ts` — каталог виджетов: `id`, размер, `ready`
 - `src/shared/defaults.ts` — дефолтные настройки
@@ -37,6 +40,7 @@ electron-vite. Первый срез — системный виджет; дал
 - Новый виджет проходит путь: `shared/types.ts` → `shared/widgets.ts` (`ready: true`) → `shared/defaults.ts` → main-модуль данных (если нужен) → `preload/index.ts` → `renderer/src/widgets/*` → `App.tsx`.
 - Новый IPC: `preload/index.ts` → `main/ipc.ts` → renderer.
 - Новая настройка: `shared/types.ts` → `defaults.ts` → `main/store.ts` (normalize) → UI.
+- Новая вкладка настроек: `shared/widgets.ts` (готовность) → `renderer/src/settings/SettingsApp.tsx` (панель) → `tokens.css` для стиля.
 - Старый `Widget` — источник кода для переноса, но переносить по одному виджету, без копирования всего проекта.
 - Проверка перед сдачей: `npm run typecheck` и `npm run build`; визуально — `npm run dev`.
 - Не менять размер окна при смене контента; размеры — в `shared/widgets.ts`.

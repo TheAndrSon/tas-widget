@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, ipcMain } from 'electron'
 import type { SettingsPatch, WidgetId } from '../shared/types'
+import { openSettingsWindow } from './settings-window'
 import type { Store } from './store'
 import type { SystemMonitor } from './system-monitor'
 import type { WidgetManager } from './widgets'
@@ -35,12 +36,18 @@ export function registerIpc({ store, manager, monitor }: Deps): void {
     return true
   })
 
+  ipcMain.handle('settings:open', () => {
+    openSettingsWindow()
+    return true
+  })
+
   ipcMain.handle('ui:context-menu', event => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) return false
     const id = manager.idFor(event.sender)
 
     const template = [
+      ...(id ? [{ label: 'Настройки…', click: () => openSettingsWindow() } as const] : []),
       ...(id ? [{ label: 'Скрыть виджет', click: () => manager.close(id) } as const] : []),
       { type: 'separator' as const },
       { label: 'Выход', click: () => app.quit() }

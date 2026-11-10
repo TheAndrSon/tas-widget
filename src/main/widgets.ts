@@ -84,12 +84,11 @@ export class WidgetManager {
 
     win.once('ready-to-show', () => {
       win.showInactive()
-      // Включаем виджет в настройках при успешном открытии.
-      this.store.setEnabled(id, true)
     })
 
     win.webContents.on('did-fail-load', (_event, code, description, url) => {
       console.error(`[widget:${id}] не загрузился ${url}: ${code} ${description}`)
+      this.store.setEnabled(id, false)
     })
 
     win.on('moved', () => {
@@ -111,6 +110,7 @@ export class WidgetManager {
     })
 
     this.wins.set(id, win)
+    this.store.setEnabled(id, true)
     return win
   }
 

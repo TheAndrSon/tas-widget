@@ -1,6 +1,7 @@
 import { app, Menu, Tray, nativeImage } from 'electron'
 import { join } from 'node:path'
 import { readyWidgetIds, WIDGETS } from '../shared/widgets'
+import { openSettingsWindow } from './settings-window'
 import type { WidgetManager } from './widgets'
 
 export class AppTray {
@@ -35,6 +36,7 @@ export class AppTray {
       { label: 'Открыть все', click: () => this.manager.restore() },
       { label: 'Закрыть все', click: () => this.manager.closeAll() },
       { type: 'separator' },
+      { label: 'Настройки…', click: () => openSettingsWindow() },
       { label: 'Выход', click: () => app.quit() }
     ])
   }

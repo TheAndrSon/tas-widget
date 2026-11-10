@@ -8,6 +8,7 @@ const api = {
   openWidget: (id: WidgetId): Promise<boolean> => ipcRenderer.invoke('widget:open', id),
   closeWidget: (id: WidgetId): Promise<boolean> => ipcRenderer.invoke('widget:close', id),
   quit: (): Promise<boolean> => ipcRenderer.invoke('app:quit'),
+  openSettings: (): Promise<boolean> => ipcRenderer.invoke('settings:open'),
   showContextMenu: (): Promise<boolean> => ipcRenderer.invoke('ui:context-menu'),
   onSystemSample: (listener: (sample: SystemSample) => void): (() => void) => {
     const handler = (_event: unknown, sample: SystemSample): void => listener(sample)
