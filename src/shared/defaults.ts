@@ -8,6 +8,7 @@ import type {
 } from './types'
 import { WIDGETS, readyWidgetIds } from './widgets'
 import { DEFAULT_VISUALIZER } from './visualizer'
+import { defaultWindowStyle } from './windowStyle'
 
 export const CITY_PRESETS: City[] = [
   {
@@ -87,7 +88,8 @@ function placement(id: WidgetId): WidgetPlacement {
     y: null,
     enabled: WIDGETS[id].ready && id === 'system',
     locked: false,
-    layer: 1
+    layer: 1,
+    style: defaultWindowStyle()
   }
 }
 
@@ -146,6 +148,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
         enabled: false,
         locked: false,
         layer: 1,
+        style: defaultWindowStyle(),
         settings: defaultWeatherSettings()
       }
     ]
@@ -161,10 +164,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
         enabled: false,
         locked: false,
         layer: 1,
+        style: defaultWindowStyle(false),
         settings: defaultEqualizerSettings()
       }
     ]
-  }
+  },
+  customStyles: []
 }
 
 export function defaultPlacement(id: WidgetId): WidgetPlacement {

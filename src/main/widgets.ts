@@ -13,6 +13,15 @@ import type { Store } from './store'
 
 const GAP = 12
 const MARGIN = 24
+const WINDOW_PAD = 24
+
+function windowWidth(width: number): number {
+  return width + WINDOW_PAD * 2
+}
+
+function windowHeight(height: number): number {
+  return height + WINDOW_PAD * 2
+}
 
 interface WidgetHooks {
   onOpen?: (id: WidgetId) => void
@@ -252,7 +261,15 @@ export class WidgetManager {
       if (timer) clearTimeout(timer)
       this.timers.set(
         `${key}:size`,
-        setTimeout(() => this.store.setEqualizerSize(instance.id, width, height), 300)
+        setTimeout(
+          () =>
+            this.store.setEqualizerSize(
+              instance.id,
+              width - WINDOW_PAD * 2,
+              height - WINDOW_PAD * 2
+            ),
+          300
+        )
       )
     })
 
@@ -319,7 +336,11 @@ export class WidgetManager {
     if (target.type === 'weather') {
       position = this.defaultPosition('weather')
     } else if (target.type === 'equalizer') {
-      position = this.defaultEqualizerPosition(bounds.width, bounds.height, target.instanceId)
+      position = this.defaultEqualizerPosition(
+        bounds.width - WINDOW_PAD * 2,
+        bounds.height - WINDOW_PAD * 2,
+        target.instanceId
+      )
     } else {
       position = this.defaultPosition(target.type)
     }
@@ -470,16 +491,16 @@ export class WidgetManager {
     options: WindowOptions = {}
   ): BrowserWindow {
     const win = new BrowserWindow({
-      width: meta.width,
-      height: meta.height,
+      width: windowWidth(meta.width),
+      height: windowHeight(meta.height),
       x,
       y,
       show: false,
       frame: false,
       transparent: true,
       resizable: options.resizable ?? false,
-      minWidth: options.minWidth,
-      minHeight: options.minHeight,
+      minWidth: options.minWidth ? windowWidth(options.minWidth) : undefined,
+      minHeight: options.minHeight ? windowHeight(options.minHeight) : undefined,
       maximizable: false,
       minimizable: false,
       fullscreenable: false,
@@ -510,15 +531,17 @@ export class WidgetManager {
     excludeId?: string
   ): { x: number; y: number } {
     const area = screen.getPrimaryDisplay().workArea
-    const rows = Math.max(1, Math.floor((area.height - 2 * MARGIN + GAP) / (height + GAP)))
+    const w = windowWidth(width)
+    const h = windowHeight(height)
+    const rows = Math.max(1, Math.floor((area.height - 2 * MARGIN + GAP) / (h + GAP)))
     const count = [...this.equalizerWins.entries()].filter(
       ([id, win]) => id !== excludeId && !win.isDestroyed()
     ).length
     const column = Math.floor(count / rows)
     const row = count % rows
     return {
-      x: area.x + MARGIN + column * (width + GAP),
-      y: area.y + area.height - height - MARGIN - row * (height + GAP)
+      x: area.x + MARGIN + column * (w + GAP),
+      y: area.y + area.height - h - MARGIN - row * (h + GAP)
     }
   }
 
@@ -530,18 +553,17 @@ export class WidgetManager {
       let baseY = MARGIN
       for (const [otherId, win] of this.wins) {
         if (win.isDestroyed()) continue
-        baseY += WIDGETS[otherId].height + GAP
+        baseY += windowHeight(WIDGETS[otherId].height) + GAP
       }
-      const rows = Math.max(
-        1,
-        Math.floor((area.height - baseY - MARGIN + GAP) / (meta.height + GAP))
-      )
+      const w = windowWidth(meta.width)
+      const h = windowHeight(meta.height)
+      const rows = Math.max(1, Math.floor((area.height - baseY - MARGIN + GAP) / (h + GAP)))
       const count = [...this.weatherWins.values()].filter(win => !win.isDestroyed()).length
       const column = Math.floor(count / rows)
       const row = count % rows
       return {
-        x: area.x + area.width - meta.width - MARGIN - column * (meta.width + GAP),
-        y: area.y + baseY + row * (meta.height + GAP)
+        x: area.x + area.width - w - MARGIN - column * (w + GAP),
+        y: area.y + baseY + row * (h + GAP)
       }
     }
 
@@ -550,10 +572,10 @@ export class WidgetManager {
     for (const otherId of order) {
       if (otherId === id) break
       if (!this.isOpen(otherId)) continue
-      offset += WIDGETS[otherId].height + GAP
+      offset += windowHeight(WIDGETS[otherId].height) + GAP
     }
     return {
-      x: area.x + area.width - meta.width - MARGIN,
+      x: area.x + area.width - windowWidth(meta.width) - MARGIN,
       y: area.y + offset
     }
   }

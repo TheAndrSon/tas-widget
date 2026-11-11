@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { SystemSample } from '@shared/types'
 import { useWidgetPlacement } from './useWidgetPlacement'
+import { defaultWindowStyle } from '@shared/windowStyle'
+import { WindowStyleLayers, windowStyleClass, windowStyleVars } from './WindowStyleLayers'
 import './SystemWidget.css'
 
 function bytes(value: number): string {
@@ -38,6 +40,7 @@ function Metric({ label, value, fill, tone }: MetricProps): ReactElement {
 export function SystemWidget(): ReactElement {
   const [sample, setSample] = useState<SystemSample | null>(null)
   const placement = useWidgetPlacement('system')
+  const style = placement?.style ?? defaultWindowStyle()
 
   useEffect(() => window.api.onSystemSample(setSample), [])
 
@@ -47,12 +50,14 @@ export function SystemWidget(): ReactElement {
 
   return (
     <div
-      className={`widget system${placement?.locked ? ' is-locked' : ''}`}
+      className={`widget system${placement?.locked ? ' is-locked' : ''} ${windowStyleClass(style)}`}
+      style={windowStyleVars(style)}
       onContextMenu={event => {
         event.preventDefault()
         void window.api.showContextMenu()
       }}
     >
+      <WindowStyleLayers style={style} accent />
       <header className="system__head">
         <span className="system__title">Система</span>
         <span className={`system__live ${sample ? 'is-online' : ''}`}>

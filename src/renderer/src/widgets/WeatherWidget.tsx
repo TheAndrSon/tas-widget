@@ -14,6 +14,8 @@ import { WeatherEffect } from './WeatherEffect'
 import { WeatherAtmosphere } from './WeatherAtmosphere'
 import { useNow, useWeather } from './useWeather'
 import { IconDroplet, IconSunrise, IconSunset, IconThermometer, IconWind } from './icons'
+import { defaultWindowStyle } from '@shared/windowStyle'
+import { WindowStyleLayers, windowStyleClass, windowStyleVars } from './WindowStyleLayers'
 import './WeatherWidget.css'
 
 function formatTemp(value: number, units: WeatherUnits): string {
@@ -193,11 +195,15 @@ export function WeatherWidget({ instanceId }: { instanceId: string }): ReactElem
     event.preventDefault()
     void window.api.showContextMenu()
   }
-  const rootClass = `widget weather${instance?.locked ? ' is-locked' : ''}`
+  const style = instance?.style ?? defaultWindowStyle()
+  const rootClass = `widget weather${instance?.locked ? ' is-locked' : ''} ${windowStyleClass(
+    style
+  )}`
 
   if (!instance || !settings) {
     return (
-      <div className={rootClass} onContextMenu={onContextMenu}>
+      <div className={rootClass} style={windowStyleVars(style)} onContextMenu={onContextMenu}>
+        <WindowStyleLayers style={style} accent />
         <div className="wx wx--empty">
           <div className="wx__empty-title">Город не найден</div>
           <div className="wx__empty-hint">Удалён из настроек</div>
@@ -217,7 +223,8 @@ export function WeatherWidget({ instanceId }: { instanceId: string }): ReactElem
 
   if (!data) {
     return (
-      <div className={rootClass} onContextMenu={onContextMenu}>
+      <div className={rootClass} style={windowStyleVars(style)} onContextMenu={onContextMenu}>
+        <WindowStyleLayers style={style} accent />
         {effects}
         <div className="wx wx--empty">
           <div className="wx__empty-title">
@@ -233,7 +240,8 @@ export function WeatherWidget({ instanceId }: { instanceId: string }): ReactElem
   const forecast = data.daily.slice(1, 1 + settings.forecastDays)
 
   return (
-    <div className={rootClass} onContextMenu={onContextMenu}>
+    <div className={rootClass} style={windowStyleVars(style)} onContextMenu={onContextMenu}>
+      <WindowStyleLayers style={style} accent />
       {effects}
 
       <div className="wx">

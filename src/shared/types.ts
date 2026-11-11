@@ -11,6 +11,66 @@ export interface WidgetMeta {
 
 export type WindowLayer = 0 | 1 | 2 | 3
 
+export interface WindowBackground {
+  color1: string
+  color2: string
+  angle: number
+  opacity: number
+}
+
+export interface WindowOutline {
+  enabled: boolean
+  placement: 'under' | 'over'
+  color: string
+  thickness: number
+  glow: number
+  intensity: number
+  /** имитация неоновой лампы: лёгкое мерцание */
+  lamp: boolean
+}
+
+export interface WindowGlow {
+  enabled: boolean
+  color: string
+  intensity: number
+  spread: number
+}
+
+export interface WindowAccent {
+  enabled: boolean
+  color: string
+  intensity: number
+  size: number
+  x: number
+  y: number
+}
+
+export interface WindowImageLayer {
+  assetId: string | null
+  zoom: number
+  x: number
+  y: number
+  opacity: number
+  dim: number
+  saturation: number
+}
+
+export interface WindowStyle {
+  windowless: boolean
+  radius: number
+  background: WindowBackground
+  images: WindowImageLayer[]
+  outline: WindowOutline
+  glow: WindowGlow
+  accent: WindowAccent
+}
+
+export interface WindowStylePreset {
+  id: string
+  name: string
+  style: WindowStyle
+}
+
 export interface WidgetPlacement {
   /** null — позиция по умолчанию (правый верхний угол). */
   x: number | null
@@ -19,6 +79,7 @@ export interface WidgetPlacement {
   locked: boolean
   /** 0 — рабочий стол, 1–3 — поверх остальных окон. */
   layer: WindowLayer
+  style: WindowStyle
 }
 
 export interface WindowTarget {
@@ -85,6 +146,7 @@ export interface WeatherInstance {
   enabled: boolean
   locked: boolean
   layer: WindowLayer
+  style: WindowStyle
   settings: WeatherSettings
 }
 
@@ -154,6 +216,7 @@ export interface EqualizerInstance {
   enabled: boolean
   locked: boolean
   layer: WindowLayer
+  style: WindowStyle
   settings: EqualizerSettings
 }
 
@@ -171,6 +234,7 @@ export interface AppSettings {
   music: MusicSettings
   weather: WeatherState
   equalizer: EqualizerState
+  customStyles: WindowStylePreset[]
 }
 
 export type SettingsPatch = {

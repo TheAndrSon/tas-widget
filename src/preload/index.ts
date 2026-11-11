@@ -15,6 +15,8 @@ import type {
   WeatherUnits,
   WidgetId,
   WindowLayer,
+  WindowStyle,
+  WindowStylePreset,
   WindowTarget
 } from '../shared/types'
 
@@ -43,6 +45,13 @@ const api = {
     ipcRenderer.invoke('window:setLock', target, locked),
   setWindowLayer: (target: WindowTarget, layer: WindowLayer): Promise<boolean> =>
     ipcRenderer.invoke('window:setLayer', target, layer),
+  setWindowStyle: (target: WindowTarget, style: WindowStyle): Promise<boolean> =>
+    ipcRenderer.invoke('window:setStyle', target, style),
+  saveStyle: (name: string, style: WindowStyle): Promise<WindowStylePreset | null> =>
+    ipcRenderer.invoke('style:save', name, style),
+  removeStyle: (id: string): Promise<boolean> => ipcRenderer.invoke('style:remove', id),
+  applyStyleToAll: (style: WindowStyle): Promise<boolean> =>
+    ipcRenderer.invoke('style:applyAll', style),
   resetWindowPosition: (target: WindowTarget): Promise<boolean> =>
     ipcRenderer.invoke('window:resetPosition', target),
   lockAll: (locked: boolean): Promise<boolean> => ipcRenderer.invoke('windows:lockAll', locked),

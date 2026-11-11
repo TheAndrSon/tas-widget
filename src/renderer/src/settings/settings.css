@@ -647,6 +647,79 @@ body {
   color: var(--text);
 }
 
+.style-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.style-presets > button,
+.style-preset > button:first-child {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.style-presets > button:hover,
+.style-preset > button:first-child:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.style-preset {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.style-preset > button:first-child {
+  border: none;
+  border-radius: 0;
+}
+
+.style-preset__remove {
+  padding: 5px 8px;
+  border: none;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.style-preset__remove:hover {
+  background: rgba(255, 90, 90, 0.1);
+  color: #ff8f8f;
+}
+
+.style-save {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.style-button {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.style-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
 .global-actions {
   display: flex;
   flex-direction: column;

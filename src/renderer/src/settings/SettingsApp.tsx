@@ -10,9 +10,13 @@ import type {
   WeatherProvider,
   WeatherSettings,
   WidgetId,
-  WindowLayer
+  WindowLayer,
+  WindowStyle,
+  WindowStylePreset,
+  WindowTarget
 } from '@shared/types'
 import { MAX_EQUALIZER_COPIES, MAX_WEATHER_CITIES } from '@shared/defaults'
+import { WINDOW_PRESETS } from '@shared/windowStyle'
 import { VISUALIZER_MODES, VISUALIZER_PALETTES } from '@shared/visualizer'
 import { WIDGETS } from '@shared/widgets'
 import { CityPicker } from './CityPicker'
@@ -202,6 +206,391 @@ function WindowControls({
   )
 }
 
+function WindowStyleControls({
+  target,
+  style,
+  customStyles,
+  accent,
+  refresh
+}: {
+  target: WindowTarget
+  style: WindowStyle
+  customStyles: WindowStylePreset[]
+  accent: boolean
+  refresh: () => Promise<void>
+}): ReactElement {
+  const [name, setName] = useState('')
+
+  const apply = (next: WindowStyle): void => {
+    void window.api.setWindowStyle(target, next).then(refresh)
+  }
+  const patch = (next: Partial<WindowStyle>): void => apply({ ...style, ...next })
+  const patchOutline = (next: Partial<WindowStyle['outline']>): void =>
+    patch({ outline: { ...style.outline, ...next } })
+  const patchGlow = (next: Partial<WindowStyle['glow']>): void =>
+    patch({ glow: { ...style.glow, ...next } })
+  const patchAccent = (next: Partial<WindowStyle['accent']>): void =>
+    patch({ accent: { ...style.accent, ...next } })
+
+  return (
+    <>
+      <div className="row row--stacked">
+        <div className="row__text">
+          <span className="row__label">Стиль окна</span>
+          <span className="row__hint">Пресеты и свои сохранённые стили</span>
+        </div>
+        <div className="style-presets">
+          {WINDOW_PRESETS.map(preset => (
+            <button
+              type="button"
+              key={preset.id}
+              onClick={() => apply(structuredClone(preset.style))}
+            >
+              {preset.name}
+            </button>
+          ))}
+        </div>
+        <div className="style-save">
+          <input
+            className="text-input"
+            type="text"
+            value={name}
+            placeholder="Название своего стиля"
+            onChange={event => setName(event.target.value)}
+          />
+          <button
+            type="button"
+            className="style-button"
+            onClick={() => {
+              if (!name.trim()) return
+              void window.api.saveStyle(name, style).then(() => {
+                setName('')
+                void refresh()
+              })
+            }}
+          >
+            Сохранить
+          </button>
+          <button
+            type="button"
+            className="style-button"
+            onClick={() => void window.api.applyStyleToAll(style).then(refresh)}
+          >
+            Ко всем виджетам
+          </button>
+        </div>
+        {customStyles.length > 0 && (
+          <div className="style-presets">
+            {customStyles.map(preset => (
+              <span className="style-preset" key={preset.id}>
+                <button type="button" onClick={() => apply(structuredClone(preset.style))}>
+                  {preset.name}
+                </button>
+                <button
+                  type="button"
+                  className="style-preset__remove"
+                  title="Удалить стиль"
+                  onClick={() => void window.api.removeStyle(preset.id).then(refresh)}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Без окна</span>
+          <span className="row__hint">Прозрачный фон, без рамки и отступов</span>
+        </div>
+        <Switch checked={style.windowless} onChange={windowless => patch({ windowless })} />
+      </div>
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Скругление углов</span>
+        </div>
+        <Slider
+          min={0}
+          max={48}
+          step={1}
+          value={style.radius}
+          onChange={radius => patch({ radius })}
+          format={item => `${item}px`}
+        />
+      </div>
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Фон</span>
+          <span className="row__hint">Градиент и прозрачность</span>
+        </div>
+        <div className="color-pair">
+          <input
+            type="color"
+            className="color-input"
+            value={style.background.color1}
+            onChange={event =>
+              patch({ background: { ...style.background, color1: event.target.value } })
+            }
+          />
+          <input
+            type="color"
+            className="color-input"
+            value={style.background.color2}
+            onChange={event =>
+              patch({ background: { ...style.background, color2: event.target.value } })
+            }
+          />
+        </div>
+      </div>
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Угол градиента</span>
+        </div>
+        <Slider
+          min={0}
+          max={360}
+          step={1}
+          value={style.background.angle}
+          onChange={angle => patch({ background: { ...style.background, angle } })}
+          format={item => `${item}°`}
+        />
+      </div>
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Прозрачность фона</span>
+        </div>
+        <Slider
+          min={0}
+          max={1}
+          step={0.01}
+          value={style.background.opacity}
+          onChange={opacity => patch({ background: { ...style.background, opacity } })}
+          format={item => `${Math.round(item * 100)}%`}
+        />
+      </div>
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Обводка</span>
+          <span className="row__hint">Привязана к форме окна</span>
+        </div>
+        <Switch checked={style.outline.enabled} onChange={enabled => patchOutline({ enabled })} />
+      </div>
+
+      {style.outline.enabled && (
+        <>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Положение обводки</span>
+            </div>
+            <Segmented
+              value={style.outline.placement}
+              options={[
+                { value: 'under', label: 'Под окном' },
+                { value: 'over', label: 'Над окном' }
+              ]}
+              onChange={placement => patchOutline({ placement })}
+            />
+          </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Цвет обводки</span>
+            </div>
+            <input
+              type="color"
+              className="color-input"
+              value={style.outline.color}
+              onChange={event => patchOutline({ color: event.target.value })}
+            />
+          </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Толщина</span>
+            </div>
+            <Slider
+              min={0.5}
+              max={12}
+              step={0.5}
+              value={style.outline.thickness}
+              onChange={thickness => patchOutline({ thickness })}
+              format={item => `${item}px`}
+            />
+          </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Свечение обводки</span>
+            </div>
+            <Slider
+              min={0}
+              max={24}
+              step={1}
+              value={style.outline.glow}
+              onChange={glow => patchOutline({ glow })}
+              format={item => `${item}px`}
+            />
+          </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Интенсивность</span>
+            </div>
+            <Slider
+              min={0}
+              max={1}
+              step={0.01}
+              value={style.outline.intensity}
+              onChange={intensity => patchOutline({ intensity })}
+              format={item => `${Math.round(item * 100)}%`}
+            />
+          </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Неоновая лампа</span>
+              <span className="row__hint">Лёгкое мерцание обводки</span>
+            </div>
+            <Switch checked={style.outline.lamp} onChange={lamp => patchOutline({ lamp })} />
+          </div>
+        </>
+      )}
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Свечение окна</span>
+          <span className="row__hint">Не обрезается, пока spread ≤ 24 px</span>
+        </div>
+        <Switch checked={style.glow.enabled} onChange={enabled => patchGlow({ enabled })} />
+      </div>
+
+      {style.glow.enabled && (
+        <>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Цвет свечения</span>
+            </div>
+            <input
+              type="color"
+              className="color-input"
+              value={style.glow.color}
+              onChange={event => patchGlow({ color: event.target.value })}
+            />
+          </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Сила</span>
+            </div>
+            <Slider
+              min={0}
+              max={1}
+              step={0.01}
+              value={style.glow.intensity}
+              onChange={intensity => patchGlow({ intensity })}
+              format={item => `${Math.round(item * 100)}%`}
+            />
+          </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Рассеивание</span>
+            </div>
+            <Slider
+              min={0}
+              max={24}
+              step={1}
+              value={style.glow.spread}
+              onChange={spread => patchGlow({ spread })}
+              format={item => `${item}px`}
+            />
+          </div>
+        </>
+      )}
+
+      {accent && (
+        <>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Световой акцент</span>
+              <span className="row__hint">Мягкое пятно света внутри окна</span>
+            </div>
+            <Switch checked={style.accent.enabled} onChange={enabled => patchAccent({ enabled })} />
+          </div>
+
+          {style.accent.enabled && (
+            <>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Цвет акцента</span>
+                </div>
+                <input
+                  type="color"
+                  className="color-input"
+                  value={style.accent.color}
+                  onChange={event => patchAccent({ color: event.target.value })}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Интенсивность</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={style.accent.intensity}
+                  onChange={intensity => patchAccent({ intensity })}
+                  format={item => `${Math.round(item * 100)}%`}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Размер</span>
+                </div>
+                <Slider
+                  min={15}
+                  max={100}
+                  step={1}
+                  value={style.accent.size}
+                  onChange={size => patchAccent({ size })}
+                  format={item => `${item}%`}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Позиция по X</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={style.accent.x}
+                  onChange={x => patchAccent({ x })}
+                  format={item => `${item}%`}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Позиция по Y</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={style.accent.y}
+                  onChange={y => patchAccent({ y })}
+                  format={item => `${item}%`}
+                />
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </>
+  )
+}
+
 function SystemPanel({ settings, patch, toggleWidget, refresh }: PanelProps): ReactElement {
   return (
     <section className="panel">
@@ -222,6 +611,14 @@ function SystemPanel({ settings, patch, toggleWidget, refresh }: PanelProps): Re
         onLocked={locked => void window.api.setWindowLock({ type: 'system' }, locked).then(refresh)}
         onLayer={layer => void window.api.setWindowLayer({ type: 'system' }, layer).then(refresh)}
         onReset={() => void window.api.resetWindowPosition({ type: 'system' }).then(refresh)}
+      />
+
+      <WindowStyleControls
+        target={{ type: 'system' }}
+        style={settings.widgets.system.style}
+        customStyles={settings.customStyles}
+        accent
+        refresh={refresh}
       />
 
       <div className="row">
@@ -271,6 +668,14 @@ function MusicPanel({ settings, patch, toggleWidget, refresh }: PanelProps): Rea
         onLocked={locked => void window.api.setWindowLock({ type: 'music' }, locked).then(refresh)}
         onLayer={layer => void window.api.setWindowLayer({ type: 'music' }, layer).then(refresh)}
         onReset={() => void window.api.resetWindowPosition({ type: 'music' }).then(refresh)}
+      />
+
+      <WindowStyleControls
+        target={{ type: 'music' }}
+        style={settings.widgets.music.style}
+        customStyles={settings.customStyles}
+        accent
+        refresh={refresh}
       />
 
       <div className="row">
@@ -837,6 +1242,14 @@ function WeatherPanel({ settings, refresh }: PanelProps): ReactElement {
             }
           />
 
+          <WindowStyleControls
+            target={{ type: 'weather', instanceId: active.id }}
+            style={active.style}
+            customStyles={settings.customStyles}
+            accent
+            refresh={refresh}
+          />
+
           <div className="row row--stacked">
             <div className="row__text">
               <span className="row__label">Город</span>
@@ -1142,18 +1555,13 @@ function EqualizerPanel({ settings, refresh }: PanelProps): ReactElement {
             }
           />
 
-          <div className="row">
-            <div className="row__text">
-              <span className="row__label">Показывать в окне</span>
-              <span className="row__hint">
-                Выключено — прозрачная визуализация без фона, рамки и отступов
-              </span>
-            </div>
-            <Switch
-              checked={active.settings.windowed}
-              onChange={windowed => void update({ windowed })}
-            />
-          </div>
+          <WindowStyleControls
+            target={{ type: 'equalizer', instanceId: active.id }}
+            style={active.style}
+            customStyles={settings.customStyles}
+            accent={false}
+            refresh={refresh}
+          />
 
           <div className="row">
             <div className="row__text">

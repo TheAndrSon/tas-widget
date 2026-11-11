@@ -1,6 +1,8 @@
 import { useEffect, useState, type MouseEvent as ReactMouseEvent, type ReactElement } from 'react'
 import type { AppSettings, EqualizerInstance } from '@shared/types'
 import { Visualizer } from './Visualizer'
+import { defaultWindowStyle } from '@shared/windowStyle'
+import { WindowStyleLayers, windowStyleClass, windowStyleVars } from './WindowStyleLayers'
 import './EqualizerWidget.css'
 
 function useEqualizerInstance(id: string): {
@@ -56,14 +58,17 @@ export function EqualizerWidget({ instanceId }: { instanceId: string }): ReactEl
   }
 
   const settings = instance.settings
+  const style = instance.style ?? defaultWindowStyle()
 
   return (
     <div
-      className={`widget eq${settings.windowed ? '' : ' is-windowless'}${
-        settings.visualizer.mode === 'off' ? ' is-empty' : ''
-      }${instance.locked ? ' is-locked' : ''}`}
+      className={`widget eq${settings.visualizer.mode === 'off' ? ' is-empty' : ''}${
+        instance.locked ? ' is-locked' : ''
+      } ${windowStyleClass(style)}`}
+      style={windowStyleVars(style)}
       onContextMenu={onContextMenu}
     >
+      <WindowStyleLayers style={style} accent={false} />
       <div className="eq__canvas">
         <Visualizer settings={settings.visualizer} />
       </div>

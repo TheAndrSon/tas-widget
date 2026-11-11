@@ -9,6 +9,7 @@ import type {
   WeatherUnits,
   WidgetId,
   WindowLayer,
+  WindowStyle,
   WindowTarget
 } from '../shared/types'
 import { WIDGET_IDS } from '../shared/widgets'
@@ -92,6 +93,36 @@ export function registerIpc({ store, manager, monitor, music, weather }: Deps): 
     if (safe !== 0 && safe !== 1 && safe !== 2 && safe !== 3) return false
     store.setWindowLayer(target as WindowTarget, safe as WindowLayer)
     manager.applyLayer(target as WindowTarget)
+    manager.broadcast('settings:changed', store.state)
+    return true
+  })
+
+  ipcMain.handle('window:setStyle', (_event, target: unknown, style: unknown) => {
+    if (!target || typeof target !== 'object' || !style || typeof style !== 'object') {
+      return false
+    }
+    store.setWindowStyle(target as WindowTarget, style as WindowStyle)
+    manager.broadcast('settings:changed', store.state)
+    return true
+  })
+
+  ipcMain.handle('style:save', (_event, name: unknown, style: unknown) => {
+    if (!style || typeof style !== 'object') return null
+    const preset = store.saveCustomStyle(typeof name === 'string' ? name : '', style as WindowStyle)
+    manager.broadcast('settings:changed', store.state)
+    return preset
+  })
+
+  ipcMain.handle('style:remove', (_event, id: unknown) => {
+    if (typeof id !== 'string') return false
+    store.removeCustomStyle(id)
+    manager.broadcast('settings:changed', store.state)
+    return true
+  })
+
+  ipcMain.handle('style:applyAll', (_event, style: unknown) => {
+    if (!style || typeof style !== 'object') return false
+    store.applyStyleToAll(style as WindowStyle)
     manager.broadcast('settings:changed', store.state)
     return true
   })

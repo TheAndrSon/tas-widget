@@ -24,17 +24,83 @@ body {
   user-select: none;
 }
 
+.widget-root {
+  height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
 .widget {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   gap: 9px;
   height: 100%;
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(160deg, rgba(20, 24, 34, 0.94), rgba(9, 11, 17, 0.9));
-  box-shadow: var(--shadow-widget);
+  border-radius: var(--ws-radius, var(--radius-lg));
+  background: transparent;
+  box-shadow: var(--ws-shadow, var(--shadow-widget));
   backdrop-filter: blur(16px);
+}
+
+.widget > *:not(.frame-layers):not(.weather-fx):not(.weather-atmosphere) {
+  position: relative;
+  z-index: 1;
+}
+
+.frame-layers {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.frame-bg,
+.frame-image,
+.frame-accent {
+  position: absolute;
+  inset: 0;
+}
+
+.frame-image {
+  background-repeat: no-repeat;
+}
+
+.widget.ws-windowless {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.widget.ws-outline-over::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  border: var(--ws-outline-thickness) solid var(--ws-outline-color);
+  border-radius: inherit;
+  box-shadow: 0 0 var(--ws-outline-glow) var(--ws-outline-color);
+  pointer-events: none;
+}
+
+.widget.ws-lamp::after {
+  animation: ws-lamp-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes ws-lamp-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .widget.is-locked,

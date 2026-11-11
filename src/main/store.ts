@@ -22,9 +22,12 @@ import type {
   WeatherSettings,
   WidgetId,
   WindowLayer,
+  WindowStyle,
+  WindowStylePreset,
   WindowTarget
 } from '../shared/types'
 import { normalizeVisualizer } from '../shared/visualizer'
+import { normalizeWindowStyle } from '../shared/windowStyle'
 import { WIDGET_IDS } from '../shared/widgets'
 
 function clamp01(value: number): number {
@@ -134,6 +137,7 @@ function normalizeEqualizer(
           enabled: typeof item.enabled === 'boolean' ? item.enabled : false,
           locked: typeof item.locked === 'boolean' ? item.locked : false,
           layer: item.layer === 0 || item.layer === 2 || item.layer === 3 ? item.layer : 1,
+          style: normalizeWindowStyle(item.style, item.settings?.windowed === false),
           settings: normalizeEqualizerSettings(item.settings)
         }
       ]
@@ -151,6 +155,10 @@ function normalizeEqualizer(
         enabled: typeof legacyPlacement?.enabled === 'boolean' ? legacyPlacement.enabled : false,
         locked: typeof legacyPlacement?.locked === 'boolean' ? legacyPlacement.locked : false,
         layer: legacyPlacement?.layer ?? 1,
+        style: normalizeWindowStyle(
+          legacyPlacement?.style,
+          (source as Partial<EqualizerSettings>).windowed === false
+        ),
         settings: normalizeEqualizerSettings(source)
       }
     ]
@@ -188,6 +196,7 @@ function normalizeWeather(
           enabled: typeof item.enabled === 'boolean' ? item.enabled : false,
           locked: typeof item.locked === 'boolean' ? item.locked : false,
           layer: item.layer === 0 || item.layer === 2 || item.layer === 3 ? item.layer : 1,
+          style: normalizeWindowStyle(item.style),
           settings: normalizeWeatherSettings(item.settings)
         }
       ]
@@ -206,12 +215,23 @@ function normalizeWeather(
         enabled: typeof legacyPlacement?.enabled === 'boolean' ? legacyPlacement.enabled : false,
         locked: typeof legacyPlacement?.locked === 'boolean' ? legacyPlacement.locked : false,
         layer: legacyPlacement?.layer ?? 1,
+        style: normalizeWindowStyle(legacyPlacement?.style),
         settings: normalizeWeatherSettings(source)
       }
     ]
   }
 
   return structuredClone(DEFAULT_SETTINGS.weather.instances)
+}
+
+function normalizeCustomStyles(raw: unknown): WindowStylePreset[] {
+  if (!Array.isArray(raw)) return []
+  return raw.slice(0, 30).flatMap(item => {
+    if (!item || typeof item !== 'object') return []
+    const preset = item as Partial<WindowStylePreset>
+    if (typeof preset.id !== 'string' || typeof preset.name !== 'string') return []
+    return [{ id: preset.id, name: preset.name, style: normalizeWindowStyle(preset.style) }]
+  })
 }
 
 function normalize(raw: unknown): AppSettings {
@@ -226,7 +246,8 @@ function normalize(raw: unknown): AppSettings {
       y: typeof item.y === 'number' ? item.y : null,
       enabled: typeof item.enabled === 'boolean' ? item.enabled : false,
       locked: typeof item.locked === 'boolean' ? item.locked : false,
-      layer: item.layer === 0 || item.layer === 2 || item.layer === 3 ? item.layer : 1
+      layer: item.layer === 0 || item.layer === 2 || item.layer === 3 ? item.layer : 1,
+      style: normalizeWindowStyle(item.style)
     }
   }
 
@@ -242,6 +263,7 @@ function normalize(raw: unknown): AppSettings {
 
   state.weather.instances = normalizeWeather(source.weather, source.widgets?.weather)
   state.equalizer.instances = normalizeEqualizer(source.equalizer, source.widgets?.equalizer)
+  state.customStyles = normalizeCustomStyles(source.customStyles)
 
   return state
 }
@@ -316,6 +338,52 @@ export class Store {
     this.scheduleSave()
   }
 
+  setWindowStyle(target: WindowTarget, style: WindowStyle): void {
+    const normalized = normalizeWindowStyle(style)
+    if (target.type === 'weather' && target.instanceId) {
+      const instance = this.weatherById(target.instanceId)
+      if (instance) instance.style = normalized
+    } else if (target.type === 'equalizer' && target.instanceId) {
+      const instance = this.equalizerById(target.instanceId)
+      if (instance) instance.style = normalized
+    } else if (target.type !== 'weather' && target.type !== 'equalizer') {
+      this.state.widgets[target.type].style = normalized
+    }
+    this.scheduleSave()
+  }
+
+  applyStyleToAll(style: WindowStyle): void {
+    const normalized = normalizeWindowStyle(style)
+    for (const id of WIDGET_IDS) this.state.widgets[id].style = structuredClone(normalized)
+    for (const instance of this.state.weather.instances) {
+      instance.style = structuredClone(normalized)
+    }
+    for (const instance of this.state.equalizer.instances) {
+      instance.style = structuredClone(normalized)
+    }
+    this.scheduleSave()
+  }
+
+  saveCustomStyle(name: string, style: WindowStyle): WindowStylePreset {
+    let id = `style-${Date.now().toString(36)}`
+    while (this.state.customStyles.some(preset => preset.id === id)) {
+      id = `${id}-x`
+    }
+    const preset: WindowStylePreset = {
+      id,
+      name: name.trim() || 'Мой стиль',
+      style: normalizeWindowStyle(style)
+    }
+    this.state.customStyles.push(preset)
+    this.scheduleSave()
+    return preset
+  }
+
+  removeCustomStyle(id: string): void {
+    this.state.customStyles = this.state.customStyles.filter(preset => preset.id !== id)
+    this.scheduleSave()
+  }
+
   setAllLocked(locked: boolean): void {
     for (const id of WIDGET_IDS) this.state.widgets[id].locked = locked
     for (const instance of this.state.weather.instances) instance.locked = locked
@@ -371,6 +439,9 @@ export class Store {
       enabled: true,
       locked: false,
       layer: 1,
+      style: this.state.weather.instances[0]?.style
+        ? structuredClone(this.state.weather.instances[0].style)
+        : normalizeWindowStyle(null),
       settings: base ? structuredClone(base) : defaultWeatherSettings()
     }
     instances.push(instance)
@@ -433,6 +504,9 @@ export class Store {
       enabled: true,
       locked: false,
       layer: 1,
+      style: this.state.equalizer.instances[0]?.style
+        ? structuredClone(this.state.equalizer.instances[0].style)
+        : normalizeWindowStyle(null),
       settings: base ? structuredClone(base) : defaultEqualizerSettings()
     }
     instances.push(instance)
