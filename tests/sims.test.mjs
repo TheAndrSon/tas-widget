@@ -28,11 +28,15 @@ function mood(overrides = {}) {
 
 const HOUR = 3_600_000
 
-test('потребности: пять шкал с действиями', () => {
+test('потребности: пять шкал в новом порядке', () => {
   assert.equal(NEEDS.length, 5)
   assert.deepEqual(
     NEEDS.map((item) => item.action),
-    ['feed', 'sleep', 'play', 'chat', 'shower']
+    ['feed', 'chat', 'shower', 'sleep', 'play']
+  )
+  assert.deepEqual(
+    NEEDS.map((item) => item.label),
+    ['Голод', 'Общение', 'Гигиена', 'Сон', 'Досуг']
   )
 })
 

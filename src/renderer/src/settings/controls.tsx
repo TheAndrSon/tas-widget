@@ -1,4 +1,4 @@
-import type { JSX, ReactNode } from 'react'
+import { useEffect, useState, type JSX, type ReactNode } from 'react'
 
 export function Section({
   title,
@@ -116,6 +116,66 @@ export function Slider({
         onChange={(event) => onChange(Number(event.target.value))}
       />
       <span className="slider__value">{format ? format(value) : value}</span>
+    </div>
+  )
+}
+
+export function NumberSlider({
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  unit
+}: {
+  value: number
+  min: number
+  max: number
+  step: number
+  onChange: (value: number) => void
+  unit?: string
+}): JSX.Element {
+  const [text, setText] = useState(() => String(value))
+  useEffect(() => {
+    setText(String(value))
+  }, [value])
+
+  const commit = (): void => {
+    const parsed = Number(text.replace(',', '.'))
+    if (!Number.isFinite(parsed)) {
+      setText(String(value))
+      return
+    }
+    const clamped = Math.min(max, Math.max(min, parsed))
+    const stepped = Number((Math.round(clamped / step) * step).toFixed(4))
+    setText(String(stepped))
+    onChange(stepped)
+  }
+
+  return (
+    <div className="slider slider--number">
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+      <input
+        className="text-input slider__number"
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.currentTarget.blur()
+        }}
+      />
+      {unit && <span className="slider__unit">{unit}</span>}
     </div>
   )
 }

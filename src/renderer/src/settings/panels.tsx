@@ -29,7 +29,7 @@ import { ZODIAC, ZODIAC_ORDER, signFromDayMonth } from '@shared/astro'
 import { VISUALIZER_MODES, VISUALIZER_PALETTES } from '@shared/presets'
 import { useMusicSnapshot } from '../hooks'
 import { formatDuration } from '../format'
-import { Row, Section, Segmented, Slider, Toggle, Chip } from './controls'
+import { Row, Section, Segmented, Slider, NumberSlider, Toggle, Chip } from './controls'
 import { CityPicker } from './CityPicker'
 import { CustomDates } from './CustomDates'
 import { StyleEditor } from './StyleEditor'
@@ -170,13 +170,21 @@ function VisualizerControls({
 
           {['bars', 'radial', 'line', 'waveform', 'dots'].includes(mode) && (
             <Row label="Количество" hint="12–3600 элементов">
-              <Slider
+              <NumberSlider
                 min={12}
                 max={3600}
                 step={1}
                 value={value.bars}
                 onChange={(bars) => set({ bars })}
-                format={(item) => String(item)}
+              />
+            </Row>
+          )}
+
+          {['bars', 'line', 'waveform', 'dots'].includes(mode) && (
+            <Row label="Половина спектра" hint="Вторая половина — отражение первой">
+              <Toggle
+                checked={value.halfSpectrum}
+                onChange={(halfSpectrum) => set({ halfSpectrum })}
               />
             </Row>
           )}
@@ -194,23 +202,23 @@ function VisualizerControls({
                 />
               </Row>
               <Row label="Толщина столбика">
-                <Slider
+                <NumberSlider
                   min={1}
                   max={60}
                   step={1}
                   value={value.barThickness}
                   onChange={(barThickness) => set({ barThickness })}
-                  format={(item) => `${item}px`}
+                  unit="px"
                 />
               </Row>
               <Row label="Зазор">
-                <Slider
+                <NumberSlider
                   min={0}
                   max={40}
                   step={1}
                   value={value.barGap}
                   onChange={(barGap) => set({ barGap })}
-                  format={(item) => `${item}px`}
+                  unit="px"
                 />
               </Row>
             </>
@@ -305,7 +313,73 @@ function VisualizerControls({
             </>
           )}
 
-          {(mode === 'bars' || mode === 'dots' || mode === 'particles' || mode === 'line') && (
+          {mode === 'face' && (
+            <>
+              <Row label="Размер частиц">
+                <NumberSlider
+                  min={0.5}
+                  max={20}
+                  step={0.5}
+                  value={value.sparkSize}
+                  onChange={(sparkSize) => set({ sparkSize })}
+                />
+              </Row>
+              <Row label="Вариативность размера" hint="0 — все частицы одного размера">
+                <NumberSlider
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={value.particleSizeVariability}
+                  onChange={(particleSizeVariability) => set({ particleSizeVariability })}
+                />
+              </Row>
+              <Row label="Количество частиц">
+                <NumberSlider
+                  min={20}
+                  max={1200}
+                  step={10}
+                  value={value.particleCount}
+                  onChange={(particleCount) => set({ particleCount })}
+                />
+              </Row>
+              <Row
+                label="Влияние звука на скорость"
+                hint="Насколько громкость ускоряет полёт частиц"
+              >
+                <NumberSlider
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  value={value.particleSpeedReactivity}
+                  onChange={(particleSpeedReactivity) => set({ particleSpeedReactivity })}
+                />
+              </Row>
+              <Row label="Базовая скорость">
+                <NumberSlider
+                  min={0.2}
+                  max={5}
+                  step={0.05}
+                  value={value.sparkSpeed}
+                  onChange={(sparkSpeed) => set({ sparkSpeed })}
+                />
+              </Row>
+              <Row label="Разброс по области">
+                <NumberSlider
+                  min={0.1}
+                  max={1}
+                  step={0.05}
+                  value={value.particleSpread}
+                  onChange={(particleSpread) => set({ particleSpread })}
+                />
+              </Row>
+            </>
+          )}
+
+          {(mode === 'bars' ||
+            mode === 'dots' ||
+            mode === 'particles' ||
+            mode === 'face' ||
+            mode === 'line') && (
             <Row label="Отражение" hint="Зеркальная копия относительно оси">
               <Toggle checked={value.mirror} onChange={(mirror) => set({ mirror })} />
             </Row>
@@ -373,8 +447,8 @@ function VisualizerControls({
 
           {spectrum && (
             <>
-              <Row label="Частоты" hint="Диапазон анализа, Гц">
-                <Slider
+              <Row label="Частоты" hint="Нижняя граница анализа, Гц">
+                <NumberSlider
                   min={20}
                   max={16000}
                   step={10}
@@ -382,17 +456,17 @@ function VisualizerControls({
                   onChange={(freqMin) =>
                     set({ freqMin, freqMax: Math.max(freqMin + 100, value.freqMax) })
                   }
-                  format={(item) => `${item}`}
+                  unit="Гц"
                 />
               </Row>
               <Row label="Верхняя частота">
-                <Slider
+                <NumberSlider
                   min={100}
                   max={22000}
                   step={100}
                   value={value.freqMax}
                   onChange={(freqMax) => set({ freqMax: Math.max(value.freqMin + 100, freqMax) })}
-                  format={(item) => `${item}`}
+                  unit="Гц"
                 />
               </Row>
               <Row
@@ -1453,13 +1527,39 @@ function DicePanel({ instance, patchSettings }: PanelProps): JSX.Element {
 
 function EqualizerPanel({ instance, patchSettings }: PanelProps): JSX.Element {
   const eq = instance.settings as EqualizerSettings
+  const mode = eq.visualizer.mode
+  const particles = mode === 'particles' || mode === 'face'
   return (
     <Section title="Эквалайзер" hint="визуализация текущей музыки">
       <VisualizerControls
         value={eq.visualizer}
         onChange={(visualizer) => patchSettings({ visualizer })}
-        allowedModes={['off', 'radial', 'particles']}
+        allowedModes={['off', 'radial', 'particles', 'face']}
       />
+      <Row
+        label="Настоящее увеличение"
+        hint="Растёт само окно и холст, без CSS-масштабирования — качество не теряется"
+      >
+        <NumberSlider
+          min={0.5}
+          max={4}
+          step={0.1}
+          value={eq.scale}
+          onChange={(scale) => patchSettings({ scale })}
+          unit="×"
+        />
+      </Row>
+      {particles && (
+        <Row
+          label="Растянуть на весь монитор"
+          hint="Окно встаёт вплотную к краям выбранного дисплея"
+        >
+          <Toggle
+            checked={eq.stretch}
+            onChange={(stretch) => void window.widgets.setEqualizerStretch(instance.id, stretch)}
+          />
+        </Row>
+      )}
       <div className="style-note">
         Данные берутся из системной медиа-сессии Windows — как у виджета музыки.
       </div>

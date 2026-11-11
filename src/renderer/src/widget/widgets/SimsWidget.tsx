@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type JSX } from 'react'
 import type { SimsAction, SimsSettings } from '@shared/types'
-import { NEEDS, decayMood, moodColor, moodLabel, moodState } from '@shared/sims'
+import { NEEDS, SIMS_ACHIEVEMENTS, decayMood, moodColor, moodLabel, moodState } from '@shared/sims'
 import { useAppState } from '../../hooks'
 
 function hexRgb(color: string): [number, number, number] {
@@ -233,6 +233,14 @@ export function SimsWidget({
               </div>
             </div>
             <span className="sims__mood">{Math.round(mood.mood)}</span>
+            <button
+              type="button"
+              className="sims__awards no-drag"
+              title="Награды"
+              onClick={() => window.widgets.openSimsRewards(instanceId, settings.groupId)}
+            >
+              🏆 {mood.unlocked?.length ?? 0}/{SIMS_ACHIEVEMENTS.length}
+            </button>
           </div>
 
           <div className="sims__needs">

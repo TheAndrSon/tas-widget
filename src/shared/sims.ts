@@ -4,13 +4,13 @@ type NeedKey = 'hunger' | 'energy' | 'fun' | 'social' | 'hygiene'
 
 export const NEEDS: Array<{ key: NeedKey; label: string; action: SimsAction }> = [
   { key: 'hunger', label: 'Голод', action: 'feed' },
-  { key: 'energy', label: 'Энергия', action: 'sleep' },
-  { key: 'fun', label: 'Веселье', action: 'play' },
   { key: 'social', label: 'Общение', action: 'chat' },
-  { key: 'hygiene', label: 'Гигиена', action: 'shower' }
+  { key: 'hygiene', label: 'Гигиена', action: 'shower' },
+  { key: 'energy', label: 'Сон', action: 'sleep' },
+  { key: 'fun', label: 'Досуг', action: 'play' }
 ]
 
-const KEYS: NeedKey[] = ['hunger', 'energy', 'fun', 'social', 'hygiene']
+const KEYS: NeedKey[] = ['hunger', 'social', 'hygiene', 'energy', 'fun']
 
 export const SIMS_ACHIEVEMENTS: Array<{
   id: string
@@ -242,12 +242,12 @@ export function decayMood(
   return evaluateAchievements(next)
 }
 
-const GAIN: Record<Exclude<SimsAction, 'worsen' | 'reset'>, number> = {
-  feed: 24,
-  chat: 22,
-  shower: 26,
-  sleep: 28,
-  play: 24
+const GAIN: Record<Exclude<SimsAction, 'worsen' | 'reset'>, { light: number; hard: number }> = {
+  feed: { light: 24, hard: 16 },
+  chat: { light: 22, hard: 15 },
+  shower: { light: 26, hard: 17 },
+  sleep: { light: 28, hard: 18 },
+  play: { light: 24, hard: 16 }
 }
 
 export function simsDo(
@@ -297,9 +297,11 @@ export function simsDo(
     const actionNeed = NEEDS.find((item) => item.action === action)?.key
     const key = target ?? actionNeed
     if (key) {
-      next[key] = clamp(
-        next[key] + (hard ? 16 : (GAIN[action as Exclude<SimsAction, 'worsen' | 'reset'>] ?? 20))
-      )
+      const gain = GAIN[action as Exclude<SimsAction, 'worsen' | 'reset'>] ?? {
+        light: 20,
+        hard: 16
+      }
+      next[key] = clamp(next[key] + gain[hard ? 'hard' : 'light'])
       next.stats.needActions[key] += 1
       if (hard) {
         const side: NeedKey = key === 'energy' ? 'hunger' : key === 'fun' ? 'energy' : 'fun'

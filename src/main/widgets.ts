@@ -77,7 +77,10 @@ export class WidgetManager {
     const existing = this.get(id)
     const win = existing ?? this.create(instance)
     this.apply(win, instance)
-    if (instance.type === 'equalizer') this.applyEqualizerDock(id, win, instance)
+    if (instance.type === 'equalizer') {
+      this.applyEqualizerDock(id, win, instance)
+      this.applyEqualizerScale(id, win, instance)
+    }
   }
 
   get(id: string): BrowserWindow | undefined {
@@ -175,7 +178,21 @@ export class WidgetManager {
   }
 
   private windowSize(instance: WidgetInstance): Size {
-    return instance.manualSize ?? instance.contentSize ?? WIDGET_META[instance.type].defaultSize
+    const base =
+      instance.manualSize ?? instance.contentSize ?? WIDGET_META[instance.type].defaultSize
+    const k = this.equalizerScale(instance)
+    return k === 1
+      ? base
+      : { width: Math.round(base.width * k), height: Math.round(base.height * k) }
+  }
+
+  /** Настоящее увеличение эквалайзера: окно и холст растут, CSS-зума нет. */
+  private equalizerScale(instance: WidgetInstance): number {
+    if (instance.type !== 'equalizer') return 1
+    const settings = instance.settings as EqualizerSettings
+    if (settings.dock && settings.dock !== 'free') return 1
+    if (settings.stretch) return 1
+    return Math.min(5, Math.max(0.5, Number(settings.scale) || 1))
   }
 
   private schedulePositionSave(id: string, win: BrowserWindow): void {
@@ -512,16 +529,13 @@ export class WidgetManager {
     const bounds = win.getBounds()
     const instance = this.store.get(id)
     const chosen =
-      instance?.type === 'equalizer' &&
-      (instance.settings as EqualizerSettings).displayId != null
+      instance?.type === 'equalizer' && (instance.settings as EqualizerSettings).displayId != null
         ? screen
             .getAllDisplays()
-            .find(
-              (display) =>
-                display.id === (instance.settings as EqualizerSettings).displayId
-            )
+            .find((display) => display.id === (instance.settings as EqualizerSettings).displayId)
         : null
-    const wa = chosen?.workArea ?? this.displayForRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    const wa =
+      chosen?.workArea ?? this.displayForRect(bounds.x, bounds.y, bounds.width, bounds.height)
     const margin = 24
     let x = bounds.x
     let y = bounds.y
@@ -568,7 +582,8 @@ export class WidgetManager {
     const display = resolveTargetDisplay(this.store.state.general.defaultDisplayId)
     const wa = display.workArea
     const firstOfType =
-      this.store.state.widgets.filter((widget) => widget.type === instance.type)[0]?.id === instance.id
+      this.store.state.widgets.filter((widget) => widget.type === instance.type)[0]?.id ===
+      instance.id
 
     if (firstOfType) {
       const top = wa.y + 48
@@ -722,7 +737,8 @@ export class WidgetManager {
       settings.displayId != null
         ? screen.getAllDisplays().find((display) => display.id === settings.displayId)
         : null
-    const wa = chosen?.workArea ?? this.displayForRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    const wa =
+      chosen?.workArea ?? this.displayForRect(bounds.x, bounds.y, bounds.width, bounds.height)
     const margin = 12
     let x = bounds.x
     let y = bounds.y
@@ -748,11 +764,33 @@ export class WidgetManager {
 
   private applyEqualizerDock(id: string, win: BrowserWindow, instance: WidgetInstance): void {
     const settings = instance.settings as EqualizerSettings
+    if (settings.stretch) {
+      const bounds = win.getBounds()
+      const chosen =
+        settings.displayId == null
+          ? null
+          : screen.getAllDisplays().find((display) => display.id === settings.displayId)
+      const target =
+        chosen ??
+        screen.getDisplayMatching({
+          x: bounds.x,
+          y: bounds.y,
+          width: bounds.width,
+          height: bounds.height
+        })
+      const area = target.bounds
+      if (instance.manualSize) this.store.setManualSize(id, null)
+      this.applyStretchBounds(win, area)
+      this.store.move(id, area.x, area.y)
+      this.nativeLayer?.setTopmost(win, instance.layer === 'always')
+      return
+    }
     if (!settings.dock || settings.dock === 'free') return
     const bounds = win.getBounds()
-    const chosen = settings.displayId == null
-      ? null
-      : screen.getAllDisplays().find((display) => display.id === settings.displayId)
+    const chosen =
+      settings.displayId == null
+        ? null
+        : screen.getAllDisplays().find((display) => display.id === settings.displayId)
     const targetDisplay =
       chosen ??
       screen.getDisplayMatching({
@@ -803,17 +841,79 @@ export class WidgetManager {
     this.nativeLayer?.setTopmost(win, instance.layer === 'always')
   }
 
+  private applyEqualizerScale(id: string, win: BrowserWindow, instance: WidgetInstance): void {
+    const settings = instance.settings as EqualizerSettings
+    if (settings.stretch) return
+    if (settings.dock && settings.dock !== 'free') return
+    if (instance.manualSize) return
+    const base = instance.contentSize ?? WIDGET_META.equalizer.defaultSize
+    this.applyBounds(id, base.width, base.height)
+  }
+
+  private applyStretchBounds(win: BrowserWindow, area: Electron.Rectangle): void {
+    if (!win.isResizable()) win.setResizable(true)
+    win.setBounds(area)
+  }
+
   private applyBounds(id: string, width: number, height: number): void {
     const win = this.get(id)
     if (!win) return
+    const instance = this.store.get(id)
+    const k = instance ? this.equalizerScale(instance) : 1
+    const targetWidth = Math.round(width * k)
+    const targetHeight = Math.round(height * k)
     const bounds = win.getBounds()
-    if (Math.abs(bounds.width - width) < 2 && Math.abs(bounds.height - height) < 2) return
+    if (Math.abs(bounds.width - targetWidth) < 2 && Math.abs(bounds.height - targetHeight) < 2)
+      return
     this.suppressMove.add(id)
-    win.setBounds({ x: bounds.x, y: bounds.y, width, height })
+    win.setBounds({ x: bounds.x, y: bounds.y, width: targetWidth, height: targetHeight })
     this.suppressMove.delete(id)
     this.keepInside(id, win)
     const current = this.store.get(id)
     if (current) this.nativeLayer?.setTopmost(win, current.layer === 'always')
+  }
+
+  setEqualizerStretch(id: string, stretch: boolean): void {
+    const instance = this.store.get(id)
+    const win = this.get(id)
+    if (!instance || !win || instance.type !== 'equalizer') return
+    if (!stretch) {
+      this.store.updateSettings(id, { stretch: false })
+      this.store.setManualSize(id, null)
+      if (win.isMaximized()) win.unmaximize()
+      const next = this.store.get(id)
+      if (next) {
+        this.applyEqualizerDock(id, win, next)
+        setTimeout(() => {
+          const current = this.store.get(id)
+          const widget = this.get(id)
+          if (current && widget) this.applyEqualizerScale(id, widget, current)
+        }, 250)
+      }
+      this.onChange()
+      return
+    }
+    const settings = instance.settings as EqualizerSettings
+    const bounds = win.getBounds()
+    const chosen =
+      settings.displayId == null
+        ? null
+        : screen.getAllDisplays().find((display) => display.id === settings.displayId)
+    const target =
+      chosen ??
+      screen.getDisplayMatching({
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height
+      })
+    const area = target.bounds
+    this.store.updateSettings(id, { stretch: true })
+    if (instance.manualSize) this.store.setManualSize(id, null)
+    this.applyStretchBounds(win, area)
+    this.store.move(id, area.x, area.y)
+    this.nativeLayer?.setTopmost(win, instance.layer === 'always')
+    this.onChange()
   }
 
   updateWidget(id: string, patch: Partial<WidgetInstance>): void {

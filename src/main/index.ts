@@ -9,6 +9,7 @@ import { FinanceService } from './finance'
 import { TwitchService } from './twitch'
 import { SystemMonitorService } from './system-monitor'
 import { SimsMenu } from './sims-menu'
+import { RewardsWindow } from './rewards-window'
 import { FontService } from './fonts'
 import { SettingsWindow } from './settings-window'
 import { Store } from './store'
@@ -78,6 +79,7 @@ let finance: FinanceService
 let twitch: TwitchService
 let system: SystemMonitorService
 let simsMenu: SimsMenu
+let rewards: RewardsWindow
 let fonts: FontService
 let tray: TrayController
 let nativeLayer: NativeLayer
@@ -154,6 +156,7 @@ function bootstrap(): void {
   twitch = new TwitchService()
   system = new SystemMonitorService()
   simsMenu = new SimsMenu()
+  rewards = new RewardsWindow()
   fonts = new FontService()
   nativeLayer = new NativeLayer()
   nativeLayer.start()
@@ -212,6 +215,7 @@ function bootstrap(): void {
     twitch,
     system,
     simsMenu,
+    rewards,
     fonts,
     tray,
     refresh,
@@ -313,6 +317,7 @@ if (!gotLock) {
     widgets?.setQuitting()
     globalShortcut.unregisterAll()
     music?.stop()
+    rewards?.close()
     nativeLayer?.stop()
     tray?.destroy()
     store?.saveNow()

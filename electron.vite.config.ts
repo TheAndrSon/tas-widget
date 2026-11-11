@@ -22,7 +22,8 @@ export default defineConfig({
           index: resolve('src/renderer/index.html'),
           settings: resolve('src/renderer/settings.html'),
           grid: resolve('src/renderer/grid.html'),
-          simsMenu: resolve('src/renderer/sims-menu.html')
+          simsMenu: resolve('src/renderer/sims-menu.html'),
+          rewards: resolve('src/renderer/rewards.html')
         }
       }
     }

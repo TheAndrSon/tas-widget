@@ -117,6 +117,9 @@ export const DEFAULT_VISUALIZER: VisualizerSettings = {
   particleReactivity: 1,
   particleSpread: 1,
   particleRandomSize: false,
+  particleSizeVariability: 0.4,
+  particleSpeedReactivity: 1,
+  halfSpectrum: false,
   radialHalf: false,
   waveCount: 4,
   waveSpeed: 1,
@@ -144,6 +147,7 @@ export const VISUALIZER_MODES: Array<{ value: VisualizerSettings['mode']; label:
   { value: 'waveform', label: 'Сплошная волна' },
   { value: 'dots', label: 'Точки' },
   { value: 'particles', label: 'Частицы' },
+  { value: 'face', label: 'В лицо' },
   { value: 'waves', label: 'Волны' }
 ]
 
@@ -777,6 +781,9 @@ export function normalizeVisualizer(
     particleReactivity: Math.min(3, Math.max(0, Number(value.particleReactivity ?? 1))),
     particleSpread: Math.min(1, Math.max(0.1, Number(value.particleSpread ?? 1))),
     particleRandomSize: Boolean(value.particleRandomSize),
+    particleSizeVariability: Math.min(1, Math.max(0, Number(value.particleSizeVariability ?? 0.4))),
+    particleSpeedReactivity: Math.min(3, Math.max(0, Number(value.particleSpeedReactivity ?? 1))),
+    halfSpectrum: Boolean(value.halfSpectrum),
     radialHalf: Boolean(value.radialHalf),
     waveCount: Math.min(24, Math.max(1, Math.round(Number(value.waveCount ?? 4)))),
     waveSpeed: Math.min(5, Math.max(0.2, Number(value.waveSpeed ?? 1))),

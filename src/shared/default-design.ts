@@ -1269,6 +1269,7 @@ export const DEFAULT_SETTINGS = {
     dockThickness: 148,
     displayId: null,
     scale: 1,
+    stretch: false,
     mirrorX: false,
     mirrorY: false
   },

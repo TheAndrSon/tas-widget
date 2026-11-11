@@ -26,6 +26,7 @@ import type {
   WeekdaySettings,
   WidgetInstance
 } from '@shared/types'
+import { WIDGET_META } from '@shared/types'
 import { useAppState } from '../hooks'
 import {
   backgroundCss,
@@ -152,14 +153,27 @@ export function WidgetApp({ instanceId }: { instanceId: string }): JSX.Element {
   useLayoutEffect(() => {
     const element = stageRef.current
     if (!element || !instance) return
-    const send = (): void => {
+    let queued = 0
+    const run = (): void => {
       if (instance.manualSize) return
+      if (instance.type === 'equalizer' && (instance.settings as EqualizerSettings).stretch) return
       const rect = element.getBoundingClientRect()
-      const width = Math.ceil(rect.width)
-      const height = Math.ceil(rect.height)
+      const eqScale =
+        instance.type === 'equalizer'
+          ? Math.min(5, Math.max(0.5, Number((instance.settings as EqualizerSettings).scale) || 1))
+          : 1
+      const width = Math.ceil(rect.width / eqScale)
+      const height = Math.ceil(rect.height / eqScale)
       if (width === lastContent.current.width && height === lastContent.current.height) return
       lastContent.current = { width, height }
       window.widgets.setContentSize(instance.id, width, height)
+    }
+    const send = (): void => {
+      if (queued) return
+      queued = requestAnimationFrame(() => {
+        queued = 0
+        run()
+      })
     }
     const observer = new ResizeObserver(() => send())
     observer.observe(element)
@@ -167,6 +181,7 @@ export function WidgetApp({ instanceId }: { instanceId: string }): JSX.Element {
     return () => {
       observer.disconnect()
       cancelAnimationFrame(frame)
+      if (queued) cancelAnimationFrame(queued)
     }
   }, [
     instanceId,
@@ -421,6 +436,27 @@ export function WidgetApp({ instanceId }: { instanceId: string }): JSX.Element {
     stageStyle.width = manual.width / instance.scale
     stageStyle.height = manual.height / instance.scale
   }
+  const eqSettings = type === 'equalizer' ? (instance.settings as EqualizerSettings) : null
+  const eqFill =
+    eqSettings !== null &&
+    (eqSettings.stretch || (eqSettings.dock === 'free' && (Number(eqSettings.scale) || 1) !== 1))
+  if (type === 'equalizer') stageStyle.boxSizing = 'border-box'
+  if (eqFill) {
+    stageStyle.paddingTop = 0
+    stageStyle.paddingRight = 0
+    stageStyle.paddingBottom = 0
+    stageStyle.paddingLeft = 0
+  }
+  if (eqSettings && !manual && eqSettings.dock === 'free') {
+    const eqScale = Math.min(5, Math.max(0.5, Number(eqSettings.scale) || 1))
+    const base = instance.contentSize ?? WIDGET_META.equalizer.defaultSize
+    stageStyle.width = Math.round(base.width * eqScale)
+    stageStyle.height = Math.round(base.height * eqScale)
+  }
+  if (eqSettings?.stretch && !manual) {
+    stageStyle.width = '100%'
+    stageStyle.height = '100%'
+  }
 
   const label = instanceLabel(instance, state.widgets)
   const musicSettings = instance.settings as MusicSettings
@@ -448,7 +484,7 @@ export function WidgetApp({ instanceId }: { instanceId: string }): JSX.Element {
   return (
     <>
       <div
-        className={`stage${manual ? ' is-manual' : ''}${resizable ? ' is-resizable' : ''}${dockedEqualizer ? ' is-docked-eq' : ''}${settingsOpen ? ' is-settings-open' : ''}${style.font.pattern !== 'none' ? ` is-text-pattern-${style.font.pattern}` : ''}${layoutMode && state.general.layoutFocusId === instance.id ? ' is-selected' : ''}`}
+        className={`stage${manual ? ' is-manual' : ''}${resizable ? ' is-resizable' : ''}${dockedEqualizer ? ' is-docked-eq' : ''}${eqFill ? ' is-eq-fill' : ''}${settingsOpen ? ' is-settings-open' : ''}${style.font.pattern !== 'none' ? ` is-text-pattern-${style.font.pattern}` : ''}${layoutMode && state.general.layoutFocusId === instance.id ? ' is-selected' : ''}`}
         ref={stageRef}
         style={stageStyle}
         data-widget-id={instance.id}

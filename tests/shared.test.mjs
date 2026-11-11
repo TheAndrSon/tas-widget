@@ -58,6 +58,11 @@ test('системный виджет: диски — отдельная нас�
   assert.equal(typeof DEFAULT_SETTINGS.system.showCpu, 'boolean')
 })
 
+test('эквалайзер: настоящее увеличение и растягивание по умолчанию выключены', () => {
+  assert.equal(typeof DEFAULT_SETTINGS.equalizer.scale, 'number')
+  assert.equal(DEFAULT_SETTINGS.equalizer.stretch, false)
+})
+
 test('визуализатор музыки: частоты и количество элементов', () => {
   const music = DEFAULT_SETTINGS.music.visualizer
   assert.ok(music.freqMin > 0)

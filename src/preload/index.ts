@@ -124,8 +124,13 @@ const api: WidgetApi = {
     ipcRenderer.invoke('sims:action', groupId, action, difficulty, need) as Promise<PersistedState>,
   openSimsMenu: (id: string) => ipcRenderer.send('sims:open-menu', id),
   closeSimsMenu: () => ipcRenderer.send('sims:close-menu'),
+  openSimsRewards: (id: string, groupId: string) =>
+    ipcRenderer.send('sims:open-rewards', id, groupId),
+  closeSimsRewards: () => ipcRenderer.send('sims:close-rewards'),
   alignEqualizer: (id: string, edge: 'top' | 'bottom' | 'left' | 'right') =>
     ipcRenderer.invoke('equalizer:align', id, edge) as Promise<void>,
+  setEqualizerStretch: (id: string, stretch: boolean) =>
+    ipcRenderer.invoke('equalizer:stretch', id, stretch) as Promise<PersistedState>,
 
   onSelectTab: (callback) => subscribe<SettingsTab>('settings:select', callback),
   onSettingsFocus: (callback) => subscribe<string | null>('settings:focus', callback),

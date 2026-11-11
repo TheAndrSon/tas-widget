@@ -175,7 +175,7 @@ export interface WeatherSettings {
 }
 
 export type VisualizerMode =
-  'off' | 'bars' | 'radial' | 'line' | 'dots' | 'particles' | 'waves' | 'waveform'
+  'off' | 'bars' | 'radial' | 'line' | 'dots' | 'particles' | 'face' | 'waves' | 'waveform'
 export type VisualizerPalette =
   'neon' | 'sunset' | 'ice' | 'matrix' | 'candy' | 'aurora' | 'fire' | 'custom'
 export type BarShape = 'rounded' | 'rect'
@@ -218,6 +218,12 @@ export interface VisualizerSettings {
   particleReactivity: number
   particleSpread: number
   particleRandomSize: boolean
+  /** 0..1 — разброс размера частиц в режиме «В лицо» */
+  particleSizeVariability: number
+  /** 0..3 — насколько звук ускоряет частицы в режиме «В лицо» */
+  particleSpeedReactivity: number
+  /** использовать половину спектра и отразить её */
+  halfSpectrum: boolean
   radialHalf: boolean
   waveCount: number
   waveSpeed: number
@@ -259,6 +265,8 @@ export interface EqualizerSettings {
   displayId: number | null
   /** 0.5..5 — масштаб свободной визуализации */
   scale: number
+  /** растянуть на весь монитор вплотную к краям */
+  stretch: boolean
   mirrorX: boolean
   mirrorY: boolean
 }
@@ -926,7 +934,10 @@ export interface WidgetApi {
   ): Promise<PersistedState>
   openSimsMenu(id: string): void
   closeSimsMenu(): void
+  openSimsRewards(id: string, groupId: string): void
+  closeSimsRewards(): void
   alignEqualizer(id: string, edge: 'top' | 'bottom' | 'left' | 'right'): Promise<void>
+  setEqualizerStretch(id: string, stretch: boolean): Promise<PersistedState>
 
   onSelectTab(cb: (tab: SettingsTab) => void): () => void
   onSettingsFocus(cb: (id: string | null) => void): () => void

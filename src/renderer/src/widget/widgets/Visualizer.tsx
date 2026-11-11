@@ -9,6 +9,7 @@ interface Particle {
   vy: number
   life: number
   size: number
+  growth?: number
 }
 
 interface Wave {
@@ -92,17 +93,19 @@ export function Visualizer({
 
       const spectrum = readSpectrum()
       if (levels.length !== count) levels = new Array(count).fill(0)
+      const bins = s.halfSpectrum ? Math.max(1, Math.ceil(count / 2)) : count
       let energy = 0
       for (let index = 0; index < count; index += 1) {
+        const source = s.halfSpectrum ? (index < bins ? index : count - 1 - index) : index
         const real = spectrum
-          ? Math.pow(spectrumValueRange(index, count, s.freqMin, s.freqMax, s.freqScale), 1.45) *
+          ? Math.pow(spectrumValueRange(source, bins, s.freqMin, s.freqMax, s.freqScale), 1.45) *
             1.9
           : 0
         const synthetic =
           0.28 +
-          0.3 * Math.abs(Math.sin(time * 2.1 + index * 0.55)) +
-          0.22 * Math.abs(Math.sin(time * 5.3 + index * 0.21)) +
-          0.16 * Math.abs(Math.sin(time * 0.7 + index * 1.3))
+          0.3 * Math.abs(Math.sin(time * 2.1 + source * 0.55)) +
+          0.22 * Math.abs(Math.sin(time * 5.3 + source * 0.21)) +
+          0.16 * Math.abs(Math.sin(time * 0.7 + source * 1.3))
         const target = spectrum ? Math.max(Math.min(1, real), 0.015) : synthetic
         levels[index] += (target - levels[index]) * (spectrum ? 0.42 : 0.2)
         energy += levels[index]
@@ -391,6 +394,68 @@ export function Visualizer({
         context.shadowBlur = 0
         particles = particles.filter(
           (particle) => particle.life > 0 && particle.y > -80 && particle.y < height + 80
+        )
+      } else if (s.mode === 'face') {
+        const cx = width / 2
+        const cy = height / 2
+        const axisX = width * s.axis
+        const speedReact = s.particleSpeedReactivity
+        const speed = s.sparkSpeed * (0.35 + energy * 2.8 * speedReact)
+        const spawnChance = 0.12 + energy * 1.9 * Math.max(0.1, s.particleReactivity)
+        const spread = Math.max(0.1, s.particleSpread)
+
+        if (Math.random() < spawnChance) {
+          const angle = Math.random() * Math.PI * 2
+          const variability = Math.max(0, Math.min(1, s.particleSizeVariability))
+          const variation = 1 + (Math.random() * 2 - 1) * variability
+          const radius = Math.random() * Math.min(width, height) * 0.1 * spread
+          particles.push({
+            x: cx + Math.cos(angle) * radius,
+            y: cy + Math.sin(angle) * radius,
+            vx: Math.cos(angle) * (30 + Math.random() * 80),
+            vy: Math.sin(angle) * (30 + Math.random() * 80),
+            life: 1 + Math.random() * 1.6,
+            size: Math.max(0.4, s.sparkSize * variation * 0.4),
+            growth: s.sparkSize * (0.5 + Math.random() * 1.5) * Math.max(0.2, variation)
+          })
+          particles = particles.slice(-s.particleCount)
+        }
+
+        if (s.glowEnabled) {
+          context.shadowColor = rgba([r1, g1, b1], s.glowIntensity)
+          context.shadowBlur = s.glowSpread
+        }
+        for (const particle of particles) {
+          particle.x += particle.vx * delta * speed
+          particle.y += particle.vy * delta * speed
+          particle.size += (particle.growth ?? 0) * delta * speed
+          particle.life -= delta * 0.32
+          const alpha = Math.max(0, Math.min(1, particle.life)) * 0.9
+          context.fillStyle = rgba(Math.random() < 0.5 ? [r1, g1, b1] : [r2, g2, b2], alpha)
+          context.beginPath()
+          context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+          context.fill()
+          if (s.mirror) {
+            context.beginPath()
+            context.arc(
+              2 * axisX - particle.x + s.mirrorOffsetX,
+              particle.y + s.mirrorOffsetY,
+              particle.size,
+              0,
+              Math.PI * 2
+            )
+            context.fill()
+          }
+        }
+        context.shadowBlur = 0
+        particles = particles.filter(
+          (particle) =>
+            particle.life > 0 &&
+            particle.size < 180 &&
+            particle.x > -particle.size &&
+            particle.x < width + particle.size &&
+            particle.y > -particle.size &&
+            particle.y < height + particle.size
         )
       } else if (s.mode === 'waves') {
         const cx = width / 2

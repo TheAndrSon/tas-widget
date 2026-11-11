@@ -33,6 +33,7 @@ import type { FinanceService } from './finance'
 import type { TwitchService } from './twitch'
 import type { SystemMonitorService } from './system-monitor'
 import type { SimsMenu } from './sims-menu'
+import type { RewardsWindow } from './rewards-window'
 import type { FontService } from './fonts'
 
 export interface AppContext {
@@ -45,6 +46,7 @@ export interface AppContext {
   twitch: TwitchService
   system: SystemMonitorService
   simsMenu: SimsMenu
+  rewards: RewardsWindow
   fonts: FontService
   tray: TrayController
   refresh: () => void
@@ -405,6 +407,20 @@ export function registerIpc(ctx: AppContext): void {
   })
 
   ipcMain.on('sims:close-menu', () => ctx.simsMenu.close())
+
+  ipcMain.on('sims:open-rewards', (_event, id: unknown, groupId: unknown) => {
+    if (typeof id !== 'string' || typeof groupId !== 'string') return
+    ctx.rewards.open(groupId, ctx.widgets.bounds(id) ?? null)
+  })
+
+  ipcMain.on('sims:close-rewards', () => ctx.rewards.close())
+
+  ipcMain.handle('equalizer:stretch', (_event, id: unknown, stretch: unknown) => {
+    if (typeof id !== 'string') return ctx.store.state
+    ctx.widgets.setEqualizerStretch(id, Boolean(stretch))
+    ctx.refresh()
+    return ctx.store.state
+  })
 
   ipcMain.handle('equalizer:align', (_event, id: unknown, edge: unknown) => {
     if (typeof id !== 'string') return

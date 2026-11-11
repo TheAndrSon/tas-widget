@@ -557,6 +557,23 @@ body,
   font-variant-numeric: tabular-nums;
 }
 
+.slider--number {
+  gap: 8px;
+}
+
+.slider__number {
+  width: 72px;
+  padding: 5px 7px;
+  text-align: right;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.slider__unit {
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
