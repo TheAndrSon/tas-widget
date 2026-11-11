@@ -40,10 +40,12 @@ function rgba(color: [number, number, number], alpha: number): string {
 
 export function Visualizer({
   settings,
-  className = ''
+  className = '',
+  flatWhenIdle = false
 }: {
   settings: VisualizerSettings
   className?: string
+  flatWhenIdle?: boolean
 }): ReactElement | null {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const settingsRef = useRef(settings)
@@ -112,6 +114,17 @@ export function Visualizer({
       }
       energy /= Math.max(1, count)
 
+      const mirrorV = s.reflection === 'vertical' || s.reflection === 'both'
+      const mirrorH = s.reflection === 'horizontal' || s.reflection === 'both'
+
+      // Без звука эквалайзер превращается в тонкую линию, а не живёт синтетикой.
+      if (flatWhenIdle && (!spectrum || energy < 0.02)) {
+        context.fillStyle = rgba([r1, g1, b1], 0.5)
+        context.fillRect(0, Math.max(0, Math.min(height - 1, Math.round(height * 0.5))), width, 1)
+        frame = requestAnimationFrame(draw)
+        return
+      }
+
       context.save()
       context.translate(width / 2, height / 2)
       context.rotate((s.rotation * Math.PI) / 180)
@@ -156,15 +169,15 @@ export function Visualizer({
           const value = levels[index] ?? 0
           const x = startX + index * step
           drawBar(x, value)
-          if (s.mirror) {
+          if (mirrorV) {
             drawBar(2 * axisX - x - s.barThickness + s.mirrorOffsetX, value, s.mirrorOffsetY)
           }
         }
       } else if (s.mode === 'radial') {
         const cx = width / 2
         const cy = height / 2
-        const base = Math.min(width, height) * 0.16
-        const length = Math.min(width, height) * 0.34 * maxHeight
+        const base = Math.min(width, height) * (s.radialRadius || 0.16)
+        const length = Math.min(width, height) * (s.radialLength || 0.34) * maxHeight
         const spike = Math.max(1, s.barThickness * 0.55)
 
         context.strokeStyle = rgba([r1, g1, b1], 0.22)
@@ -193,7 +206,7 @@ export function Visualizer({
           context.beginPath()
           context.moveTo(cx + Math.cos(angle) * base, cy + Math.sin(angle) * base)
           context.lineTo(cx + Math.cos(angle) * (base + len), cy + Math.sin(angle) * (base + len))
-          if (s.mirror) {
+          if (mirrorV) {
             const mx = s.mirrorOffsetX
             const my = s.mirrorOffsetY
             context.moveTo(cx - Math.cos(angle) * base + mx, cy - Math.sin(angle) * base + my)
@@ -233,7 +246,7 @@ export function Visualizer({
         context.lineWidth = s.lineThickness
         context.lineCap = 'round'
         strokeLine(false)
-        if (s.mirror) strokeLine(true)
+        if (mirrorV) strokeLine(true)
       } else if (s.mode === 'waveform') {
         const axisY = height * s.axis
         const amplitude = height * 0.38 * maxHeight * intensity
@@ -288,7 +301,7 @@ export function Visualizer({
           context.shadowBlur = s.glowSpread
         }
         drawShape()
-        if (s.mirror) {
+        if (mirrorV) {
           context.save()
           context.translate(s.mirrorOffsetX, s.mirrorOffsetY)
           context.translate(0, 2 * axisY)
@@ -318,8 +331,8 @@ export function Visualizer({
               const y = height - (row + 1) * cell + s.barGap / 2 + offsetY
               context.fillStyle =
                 row < active
-                  ? rgba([r2, g2, b2], 0.35 + (row / rows) * 0.6)
-                  : rgba([r1, g1, b1], 0.07)
+                  ? rgba([r2, g2, b2], (0.35 + (row / rows) * 0.6) * (s.spectrumOpacity ?? 1))
+                  : rgba([r1, g1, b1], s.inactiveOpacity ?? 0.07)
               context.beginPath()
               context.arc(x + s.dotSize / 2, y + s.dotSize / 2, s.dotSize / 2, 0, Math.PI * 2)
               context.fill()
@@ -328,7 +341,7 @@ export function Visualizer({
         }
 
         drawGrid(startX, 1)
-        if (s.mirror) {
+        if (mirrorV) {
           drawGrid(2 * axisX - startX, -1, s.mirrorOffsetX, s.mirrorOffsetY)
         }
       } else if (s.mode === 'particles') {
@@ -379,7 +392,7 @@ export function Visualizer({
           context.beginPath()
           context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
           context.fill()
-          if (s.mirror) {
+          if (mirrorV) {
             context.beginPath()
             context.arc(
               2 * axisX - particle.x + s.mirrorOffsetX,
@@ -402,16 +415,19 @@ export function Visualizer({
         const speedReact = s.particleSpeedReactivity
         const speed = s.sparkSpeed * (0.35 + energy * 2.8 * speedReact)
         const spawnChance = 0.12 + energy * 1.9 * Math.max(0.1, s.particleReactivity)
-        const spread = Math.max(0.1, s.particleSpread)
 
         if (Math.random() < spawnChance) {
-          const angle = Math.random() * Math.PI * 2
           const variability = Math.max(0, Math.min(1, s.particleSizeVariability))
           const variation = 1 + (Math.random() * 2 - 1) * variability
-          const radius = Math.random() * Math.min(width, height) * 0.1 * spread
+          const x = cx + (Math.random() - 0.5) * width * (s.particleMaskWidth ?? 0.2)
+          const y = cy + (Math.random() - 0.5) * height * (s.particleMaskHeight ?? 0.2)
+          const dx = x - cx
+          const dy = y - cy
+          const distance = Math.hypot(dx, dy)
+          const angle = distance > 1 ? Math.atan2(dy, dx) : Math.random() * Math.PI * 2
           particles.push({
-            x: cx + Math.cos(angle) * radius,
-            y: cy + Math.sin(angle) * radius,
+            x,
+            y,
             vx: Math.cos(angle) * (30 + Math.random() * 80),
             vy: Math.sin(angle) * (30 + Math.random() * 80),
             life: 1 + Math.random() * 1.6,
@@ -435,7 +451,7 @@ export function Visualizer({
           context.beginPath()
           context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
           context.fill()
-          if (s.mirror) {
+          if (mirrorV) {
             context.beginPath()
             context.arc(
               2 * axisX - particle.x + s.mirrorOffsetX,
@@ -508,6 +524,18 @@ export function Visualizer({
 
       context.shadowBlur = 0
       context.restore()
+
+      // Горизонтальная ось: зеркальная копия всего рисунка сверху-вниз.
+      if (mirrorH) {
+        context.save()
+        context.setTransform(1, 0, 0, 1, 0, 0)
+        context.globalCompositeOperation = 'source-over'
+        context.translate(0, canvas.height)
+        context.scale(1, -1)
+        context.drawImage(canvas, 0, 0)
+        context.restore()
+      }
+
       frame = requestAnimationFrame(draw)
     }
 

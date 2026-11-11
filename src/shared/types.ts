@@ -179,6 +179,7 @@ export type VisualizerMode =
 export type VisualizerPalette =
   'neon' | 'sunset' | 'ice' | 'matrix' | 'candy' | 'aurora' | 'fire' | 'custom'
 export type BarShape = 'rounded' | 'rect'
+export type VisualizerReflection = 'none' | 'vertical' | 'horizontal' | 'both'
 export type AudioSource = 'system' | 'window' | 'multi'
 
 export interface VisualizerSettings {
@@ -194,6 +195,8 @@ export interface VisualizerSettings {
   barGap: number
   barShape: BarShape
   mirror: boolean
+  /** отражение: вертикальная ось, горизонтальная, обе */
+  reflection: VisualizerReflection
   axis: number
   rotation: number
   mirrorX: boolean
@@ -222,8 +225,19 @@ export interface VisualizerSettings {
   particleSizeVariability: number
   /** 0..3 — насколько звук ускоряет частицы в режиме «В лицо» */
   particleSpeedReactivity: number
+  /** размер центральной прямоугольной маски вылета частиц, доля ширины/высоты */
+  particleMaskWidth: number
+  particleMaskHeight: number
+  /** прозрачность неактивных элементов (фон сетки) */
+  inactiveOpacity: number
+  /** прозрачность активного спектра */
+  spectrumOpacity: number
   /** использовать половину спектра и отразить её */
   halfSpectrum: boolean
+  /** радиус центральной окружности радиального режима, доля меньшей стороны */
+  radialRadius: number
+  /** длина лучей радиального режима, доля меньшей стороны */
+  radialLength: number
   radialHalf: boolean
   waveCount: number
   waveSpeed: number
@@ -263,8 +277,10 @@ export interface EqualizerSettings {
   dockThickness: number
   /** выбранный монитор; null — текущий */
   displayId: number | null
-  /** 0.5..5 — масштаб свободной визуализации */
+  /** 0.25..8 — масштаб свободной визуализации */
   scale: number
+  /** общая прозрачность эквалайзера 0.05..1 */
+  opacity: number
   /** растянуть на весь монитор вплотную к краям */
   stretch: boolean
   mirrorX: boolean

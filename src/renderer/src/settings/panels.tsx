@@ -342,6 +342,24 @@ function VisualizerControls({
                   onChange={(particleCount) => set({ particleCount })}
                 />
               </Row>
+              <Row label="Ширина маски" hint="Зона вылета частиц по центру, доля ширины">
+                <NumberSlider
+                  min={0}
+                  max={0.9}
+                  step={0.01}
+                  value={value.particleMaskWidth}
+                  onChange={(particleMaskWidth) => set({ particleMaskWidth })}
+                />
+              </Row>
+              <Row label="Высота маски" hint="Зона вылета частиц по центру, доля высоты">
+                <NumberSlider
+                  min={0}
+                  max={0.9}
+                  step={0.01}
+                  value={value.particleMaskHeight}
+                  onChange={(particleMaskHeight) => set({ particleMaskHeight })}
+                />
+              </Row>
               <Row
                 label="Влияние звука на скорость"
                 hint="Насколько громкость ускоряет полёт частиц"
@@ -375,23 +393,25 @@ function VisualizerControls({
             </>
           )}
 
-          {(mode === 'bars' ||
-            mode === 'dots' ||
-            mode === 'particles' ||
-            mode === 'face' ||
-            mode === 'line') && (
-            <Row label="Отражение" hint="Зеркальная копия относительно оси">
-              <Toggle checked={value.mirror} onChange={(mirror) => set({ mirror })} />
+          {['bars', 'dots', 'particles', 'face', 'line', 'waveform', 'radial'].includes(mode) && (
+            <Row
+              label="Отражение"
+              hint="Вертикальная ось — зеркало слева-справа, горизонтальная — сверху-снизу"
+            >
+              <Segmented
+                value={value.reflection}
+                options={[
+                  { value: 'none', label: 'Нет' },
+                  { value: 'vertical', label: 'Вертикальная' },
+                  { value: 'horizontal', label: 'Горизонтальная' },
+                  { value: 'both', label: 'Обе' }
+                ]}
+                onChange={(reflection) => set({ reflection })}
+              />
             </Row>
           )}
 
-          {mode === 'radial' && (
-            <Row label="Отражение" hint="Лучи с противоположной стороны">
-              <Toggle checked={value.mirror} onChange={(mirror) => set({ mirror })} />
-            </Row>
-          )}
-
-          {value.mirror && (
+          {value.reflection !== 'none' && (
             <>
               <Row label="Сдвиг отражения X">
                 <Slider
@@ -411,6 +431,52 @@ function VisualizerControls({
                   value={value.mirrorOffsetY}
                   onChange={(mirrorOffsetY) => set({ mirrorOffsetY })}
                   format={(item) => `${item}px`}
+                />
+              </Row>
+            </>
+          )}
+
+          {mode === 'radial' && (
+            <>
+              <Row label="Радиус" hint="Размер центральной окружности">
+                <NumberSlider
+                  min={0.05}
+                  max={1}
+                  step={0.01}
+                  value={value.radialRadius}
+                  onChange={(radialRadius) => set({ radialRadius })}
+                />
+              </Row>
+              <Row label="Длина лучей">
+                <NumberSlider
+                  min={0.05}
+                  max={1}
+                  step={0.01}
+                  value={value.radialLength}
+                  onChange={(radialLength) => set({ radialLength })}
+                />
+              </Row>
+            </>
+          )}
+
+          {mode === 'dots' && (
+            <>
+              <Row label="Прозрачность фона" hint="Точки, которые не реагируют на звук">
+                <NumberSlider
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={value.inactiveOpacity}
+                  onChange={(inactiveOpacity) => set({ inactiveOpacity })}
+                />
+              </Row>
+              <Row label="Прозрачность спектра" hint="Точки, которые меняются от звука">
+                <NumberSlider
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={value.spectrumOpacity}
+                  onChange={(spectrumOpacity) => set({ spectrumOpacity })}
                 />
               </Row>
             </>
@@ -1541,12 +1607,22 @@ function EqualizerPanel({ instance, patchSettings }: PanelProps): JSX.Element {
         hint="Растёт само окно и холст, без CSS-масштабирования — качество не теряется"
       >
         <NumberSlider
-          min={0.5}
-          max={4}
-          step={0.1}
+          min={0.25}
+          max={8}
+          step={0.05}
           value={eq.scale}
           onChange={(scale) => patchSettings({ scale })}
           unit="×"
+        />
+      </Row>
+      <Row label="Прозрачность" hint="От почти прозрачного до полностью непрозрачного">
+        <NumberSlider
+          min={5}
+          max={100}
+          step={5}
+          value={Math.round((Number(eq.opacity) || 1) * 100)}
+          onChange={(opacity) => patchSettings({ opacity: opacity / 100 })}
+          unit="%"
         />
       </Row>
       {particles && (

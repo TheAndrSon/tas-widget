@@ -234,7 +234,11 @@ export function normalizeSettings(type: WidgetType, input: WidgetSettings): Widg
       merged.visualizer = normalizeVisualizer(
         (input as EqualizerSettings).visualizer ?? DEFAULT_VISUALIZER
       )
-      merged.scale = Math.min(5, Math.max(0.5, Number((input as EqualizerSettings).scale ?? 1)))
+      merged.scale = Math.min(8, Math.max(0.25, Number((input as EqualizerSettings).scale ?? 1)))
+      merged.opacity = Math.min(
+        1,
+        Math.max(0.05, Number((input as EqualizerSettings).opacity ?? 1))
+      )
       merged.stretch = Boolean((input as EqualizerSettings).stretch)
     }
     if (type === 'tarot') {

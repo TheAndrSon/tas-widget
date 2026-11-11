@@ -6,7 +6,7 @@ export function EqualizerWidget({ settings }: { settings: EqualizerSettings }): 
   return (
     <div className={`eq${settings.visualizer.mode === 'off' ? ' is-empty' : ''}`}>
       <div className="eq__canvas">
-        <Visualizer settings={settings.visualizer} />
+        <Visualizer settings={settings.visualizer} flatWhenIdle />
       </div>
     </div>
   )

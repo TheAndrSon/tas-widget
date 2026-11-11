@@ -160,7 +160,7 @@ export function WidgetApp({ instanceId }: { instanceId: string }): JSX.Element {
       const rect = element.getBoundingClientRect()
       const eqScale =
         instance.type === 'equalizer'
-          ? Math.min(5, Math.max(0.5, Number((instance.settings as EqualizerSettings).scale) || 1))
+          ? Math.min(8, Math.max(0.25, Number((instance.settings as EqualizerSettings).scale) || 1))
           : 1
       const width = Math.ceil(rect.width / eqScale)
       const height = Math.ceil(rect.height / eqScale)
@@ -441,6 +441,9 @@ export function WidgetApp({ instanceId }: { instanceId: string }): JSX.Element {
     eqSettings !== null &&
     (eqSettings.stretch || (eqSettings.dock === 'free' && (Number(eqSettings.scale) || 1) !== 1))
   if (type === 'equalizer') stageStyle.boxSizing = 'border-box'
+  if (eqSettings) {
+    stageStyle.opacity = Math.min(1, Math.max(0.05, Number(eqSettings.opacity) || 1))
+  }
   if (eqFill) {
     stageStyle.paddingTop = 0
     stageStyle.paddingRight = 0
@@ -448,7 +451,7 @@ export function WidgetApp({ instanceId }: { instanceId: string }): JSX.Element {
     stageStyle.paddingLeft = 0
   }
   if (eqSettings && !manual && eqSettings.dock === 'free') {
-    const eqScale = Math.min(5, Math.max(0.5, Number(eqSettings.scale) || 1))
+    const eqScale = Math.min(8, Math.max(0.25, Number(eqSettings.scale) || 1))
     const base = instance.contentSize ?? WIDGET_META.equalizer.defaultSize
     stageStyle.width = Math.round(base.width * eqScale)
     stageStyle.height = Math.round(base.height * eqScale)

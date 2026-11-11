@@ -58,9 +58,21 @@ test('системный виджет: диски — отдельная нас�
   assert.equal(typeof DEFAULT_SETTINGS.system.showCpu, 'boolean')
 })
 
-test('эквалайзер: настоящее увеличение и растягивание по умолчанию выключены', () => {
+test('эквалайзер: увеличение, прозрачность и растягивание сохранены в дефолтах', () => {
   assert.equal(typeof DEFAULT_SETTINGS.equalizer.scale, 'number')
-  assert.equal(DEFAULT_SETTINGS.equalizer.stretch, false)
+  assert.equal(typeof DEFAULT_SETTINGS.equalizer.opacity, 'number')
+  assert.equal(typeof DEFAULT_SETTINGS.equalizer.stretch, 'boolean')
+})
+
+test('визуализатор: отражение, прозрачность, радиус и маска частиц', () => {
+  const visualizer = DEFAULT_SETTINGS.equalizer.visualizer
+  assert.ok(['none', 'vertical', 'horizontal', 'both'].includes(visualizer.reflection))
+  assert.equal(typeof visualizer.inactiveOpacity, 'number')
+  assert.equal(typeof visualizer.spectrumOpacity, 'number')
+  assert.equal(typeof visualizer.radialRadius, 'number')
+  assert.equal(typeof visualizer.radialLength, 'number')
+  assert.equal(typeof visualizer.particleMaskWidth, 'number')
+  assert.equal(typeof visualizer.particleMaskHeight, 'number')
 })
 
 test('визуализатор музыки: частоты и количество элементов', () => {

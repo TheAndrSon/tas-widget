@@ -27,8 +27,6 @@ const WIDGET_TYPES = [
   'system'
 ]
 
-const DISABLED_BY_DEFAULT = new Set(['clock', 'weekday', 'equalizer', 'twitch'])
-
 const input = process.argv[2]
 if (!input) {
   console.error('Укажите путь к state.json')
@@ -42,8 +40,8 @@ for (const widget of state.widgets ?? []) {
 }
 
 const PRESET_IDS = {
-  'tribe_one': 'tribe-one',
-  'calendar': 'notebook-light'
+  tribe_one: 'tribe-one',
+  calendar: 'notebook-light'
 }
 
 function mapPresetId(style, sourcePresetId) {
@@ -96,7 +94,7 @@ for (const type of WIDGET_TYPES) {
   }
   styles[type] = cleanStyle(widget.style)
   settings[type] = cleanSettings(type, widget.settings)
-  enabled[type] = !DISABLED_BY_DEFAULT.has(type)
+  enabled[type] = Boolean(widget.enabled)
 }
 
 const presets = []

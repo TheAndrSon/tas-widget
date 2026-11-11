@@ -192,7 +192,7 @@ export class WidgetManager {
     const settings = instance.settings as EqualizerSettings
     if (settings.dock && settings.dock !== 'free') return 1
     if (settings.stretch) return 1
-    return Math.min(5, Math.max(0.5, Number(settings.scale) || 1))
+    return Math.min(8, Math.max(0.25, Number(settings.scale) || 1))
   }
 
   private schedulePositionSave(id: string, win: BrowserWindow): void {
@@ -222,7 +222,13 @@ export class WidgetManager {
     // даже если после изменения контента часть окна выходит за край.
     if (instance?.locked) return
     const bounds = win.getBounds()
-    const clamped = this.clampToDisplay(bounds.x, bounds.y, bounds.width, bounds.height)
+    const clamped = this.clampToDisplay(
+      bounds.x,
+      bounds.y,
+      bounds.width,
+      bounds.height,
+      instance?.type === 'equalizer'
+    )
     if (clamped.x !== bounds.x || clamped.y !== bounds.y) {
       this.suppressMove.add(id)
       win.setBounds({ ...bounds, x: clamped.x, y: clamped.y })
@@ -231,7 +237,13 @@ export class WidgetManager {
     }
   }
 
-  private clampToDisplay(x: number, y: number, width: number, height: number): Position {
+  private clampToDisplay(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    allowHalfOutside = false
+  ): Position {
     const displays = screen.getAllDisplays().map((display) => display.workArea)
     if (displays.length === 0) return { x, y }
     let best = displays[0]
@@ -243,11 +255,15 @@ export class WidgetManager {
         best = rect
       }
     }
-    const maxX = best.x + Math.max(0, best.width - width)
-    const maxY = best.y + Math.max(0, best.height - height)
+    const halfX = allowHalfOutside ? width / 2 : 0
+    const halfY = allowHalfOutside ? height / 2 : 0
+    const minX = best.x - halfX
+    const minY = best.y - halfY
+    const maxX = best.x + best.width - width + halfX
+    const maxY = best.y + best.height - height + halfY
     return {
-      x: Math.round(Math.min(Math.max(x, best.x), maxX)),
-      y: Math.round(Math.min(Math.max(y, best.y), maxY))
+      x: Math.round(Math.min(Math.max(x, minX), maxX)),
+      y: Math.round(Math.min(Math.max(y, minY), maxY))
     }
   }
 
@@ -352,7 +368,13 @@ export class WidgetManager {
     }
 
     this.broadcastGuides(guideX, guideY)
-    const clamped = this.clampToDisplay(x, y, bounds.width, bounds.height)
+    const clamped = this.clampToDisplay(
+      x,
+      y,
+      bounds.width,
+      bounds.height,
+      this.store.get(id)?.type === 'equalizer'
+    )
     return { x: Math.round(clamped.x), y: Math.round(clamped.y) }
   }
 
@@ -475,7 +497,13 @@ export class WidgetManager {
     const bounds = win.getBounds()
     const x = Math.round(bounds.x + dx)
     const y = Math.round(bounds.y + dy)
-    const clamped = this.clampToDisplay(x, y, bounds.width, bounds.height)
+    const clamped = this.clampToDisplay(
+      x,
+      y,
+      bounds.width,
+      bounds.height,
+      this.store.get(id)?.type === 'equalizer'
+    )
     this.suppressMove.add(id)
     win.setBounds({ x: clamped.x, y: clamped.y, width: bounds.width, height: bounds.height })
     this.suppressMove.delete(id)
@@ -573,7 +601,13 @@ export class WidgetManager {
 
   private resolvePosition(instance: WidgetInstance, size: Size): Position {
     if (instance.position) {
-      return this.clampToDisplay(instance.position.x, instance.position.y, size.width, size.height)
+      return this.clampToDisplay(
+        instance.position.x,
+        instance.position.y,
+        size.width,
+        size.height,
+        instance.type === 'equalizer'
+      )
     }
     return this.defaultPosition(instance, size)
   }
@@ -645,7 +679,8 @@ export class WidgetManager {
       minX + (count % 6) * 24,
       minY + (count % 6) * 24,
       size.width,
-      size.height
+      size.height,
+      instance.type === 'equalizer'
     )
   }
 
