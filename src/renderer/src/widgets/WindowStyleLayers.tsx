@@ -24,7 +24,7 @@ export function windowStyleVars(style: WindowStyle): CSSProperties {
     '--ws-outline-glow': `${style.outline.glow}px`
   }
 
-  const shadows: string[] = ['inset 0 1px 0 rgba(255,255,255,0.06)']
+  const shadows: string[] = []
   if (style.outline.enabled && style.outline.placement === 'under') {
     shadows.unshift(
       `0 0 0 ${style.outline.thickness}px ${rgba(style.outline.color, style.outline.intensity)}`,

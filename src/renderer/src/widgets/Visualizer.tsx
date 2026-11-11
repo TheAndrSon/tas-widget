@@ -333,9 +333,10 @@ export function Visualizer({
         const spawnChance = 0.1 + energy * 1.8 * reactivity
 
         if (Math.random() < spawnChance) {
+          const spread = Math.max(0.1, s.particleSpread)
           if (s.particleOrigin === 'center') {
             const angle = Math.random() * Math.PI * 2
-            const distance = 8 + Math.random() * Math.min(width, height) * 0.28
+            const distance = 8 + Math.sqrt(Math.random()) * Math.min(width, height) * 0.42 * spread
             const outward = 18 + Math.random() * 46
             particles.push({
               x: width / 2 + Math.cos(angle) * distance,
@@ -347,7 +348,7 @@ export function Visualizer({
             })
           } else {
             particles.push({
-              x: axisX + (Math.random() - 0.5) * width,
+              x: axisX + (Math.random() - 0.5) * width * spread,
               y: height + Math.random() * 12,
               vx: (Math.random() - 0.5) * 26,
               vy: -(16 + Math.random() * 44) * (0.5 + s.sparkSpeed),

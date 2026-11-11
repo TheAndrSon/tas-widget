@@ -1010,9 +1010,15 @@ function MusicPanel({ settings, patch, toggleWidget, refresh }: PanelProps): Rea
         />
       </div>
 
+      <VisualizerControls
+        value={music.visualizer}
+        onChange={visualizer => patch({ music: { visualizer } })}
+        allowedModes={['off', 'bars', 'dots']}
+      />
+
       <p className="note">
-        Виджет работает через Windows SMTC и не требует настройки плеера. Позиция окна запоминается
-        автоматически.
+        Визуализация рисуется на фоне окна. Для музыки доступны точки и столбики со своими
+        настройками и свечением.
       </p>
     </section>
   )
@@ -1020,10 +1026,12 @@ function MusicPanel({ settings, patch, toggleWidget, refresh }: PanelProps): Rea
 
 function VisualizerControls({
   value,
-  onChange
+  onChange,
+  allowedModes
 }: {
   value: VisualizerSettings
   onChange: (next: VisualizerSettings) => void
+  allowedModes?: VisualizerSettings['mode'][]
 }): ReactElement {
   const set = (patch: Partial<VisualizerSettings>): void => onChange({ ...value, ...patch })
   const mode = value.mode
@@ -1037,7 +1045,15 @@ function VisualizerControls({
           <span className="row__label">Визуализация</span>
           <span className="row__hint">Что рисовать под музыку</span>
         </div>
-        <Segmented value={mode} options={VISUALIZER_MODES} onChange={next => set({ mode: next })} />
+        <Segmented
+          value={mode}
+          options={
+            allowedModes
+              ? VISUALIZER_MODES.filter(item => allowedModes.includes(item.value))
+              : VISUALIZER_MODES
+          }
+          onChange={next => set({ mode: next })}
+        />
       </div>
 
       {mode !== 'off' && (
@@ -1270,6 +1286,20 @@ function VisualizerControls({
                   step={10}
                   value={value.particleCount}
                   onChange={particleCount => set({ particleCount })}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Распределение по области</span>
+                  <span className="row__hint">Больше — равномернее по всей площади</span>
+                </div>
+                <Slider
+                  min={0.1}
+                  max={1}
+                  step={0.01}
+                  value={value.particleSpread}
+                  onChange={particleSpread => set({ particleSpread })}
+                  format={item => `${Math.round(item * 100)}%`}
                 />
               </div>
               <div className="row">

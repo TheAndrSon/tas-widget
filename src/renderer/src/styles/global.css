@@ -38,16 +38,25 @@ body {
   gap: 9px;
   height: 100%;
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--ws-radius, var(--radius-lg));
   background: transparent;
-  box-shadow: var(--ws-shadow, var(--shadow-widget));
+  box-shadow: var(--ws-shadow, none);
   backdrop-filter: blur(16px);
 }
 
-.widget > *:not(.frame-layers):not(.weather-fx):not(.weather-atmosphere) {
+.widget > *:not(.frame-layers):not(.frame-visualizer):not(.weather-fx):not(.weather-atmosphere) {
   position: relative;
   z-index: 1;
+}
+
+.frame-visualizer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 .frame-layers {

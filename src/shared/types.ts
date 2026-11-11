@@ -106,6 +106,7 @@ export interface MusicSettings {
   showProgress: boolean
   showControls: boolean
   showSource: boolean
+  visualizer: VisualizerSettings
 }
 
 export type WeatherUnits = 'metric' | 'imperial'
@@ -205,6 +206,8 @@ export interface VisualizerSettings {
   particleOrigin: 'bottom' | 'center'
   particleCount: number
   particleReactivity: number
+  /** 0.1..1 — насколько широко частицы распределяются по области */
+  particleSpread: number
   waveCount: number
   waveSpeed: number
   waveThickness: number

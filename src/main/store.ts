@@ -261,6 +261,9 @@ function normalize(raw: unknown): AppSettings {
     const value = source.music?.[key]
     if (typeof value === 'boolean') state.music[key] = value
   }
+  if (source.music?.visualizer) {
+    state.music.visualizer = normalizeVisualizer(source.music.visualizer)
+  }
 
   state.weather.instances = normalizeWeather(source.weather, source.widgets?.weather)
   state.equalizer.instances = normalizeEqualizer(source.equalizer, source.widgets?.equalizer)
@@ -291,6 +294,9 @@ export class Store {
     }
     if (patch.music) {
       this.state.music = { ...this.state.music, ...patch.music }
+      if (patch.music.visualizer) {
+        this.state.music.visualizer = normalizeVisualizer(patch.music.visualizer)
+      }
     }
     if (patch.widgets) {
       for (const id of WIDGET_IDS) {

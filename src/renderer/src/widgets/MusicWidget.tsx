@@ -8,6 +8,7 @@ import {
 } from 'react'
 import type { AppSettings, MusicSettings, MusicSnapshot } from '@shared/types'
 import { IconNext, IconNote, IconPause, IconPlay, IconPrev } from './icons'
+import { Visualizer } from './Visualizer'
 import { useWidgetPlacement } from './useWidgetPlacement'
 import { defaultWindowStyle } from '@shared/windowStyle'
 import { WindowStyleLayers, windowStyleClass, windowStyleVars } from './WindowStyleLayers'
@@ -128,6 +129,9 @@ export function MusicWidget(): ReactElement | null {
         onContextMenu={onContextMenu}
       >
         <WindowStyleLayers style={style} accent />
+        {settings.visualizer.mode !== 'off' && (
+          <Visualizer settings={settings.visualizer} className="frame-visualizer" />
+        )}
         <div className="music__art music__art--empty">
           <IconNote size={22} />
         </div>
@@ -178,6 +182,9 @@ export function MusicWidget(): ReactElement | null {
       onContextMenu={onContextMenu}
     >
       <WindowStyleLayers style={style} accent />
+      {settings.visualizer.mode !== 'off' && (
+        <Visualizer settings={settings.visualizer} className="frame-visualizer" />
+      )}
       {settings.showArt && (
         <div className="music__art">
           {snapshot.artwork ? (

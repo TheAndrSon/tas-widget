@@ -137,7 +137,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
     showArt: true,
     showProgress: true,
     showControls: true,
-    showSource: true
+    showSource: true,
+    visualizer: {
+      ...structuredClone(DEFAULT_VISUALIZER),
+      mode: 'dots',
+      intensity: 0.45,
+      bars: 48,
+      maxHeight: 60
+    }
   },
   weather: {
     instances: [
