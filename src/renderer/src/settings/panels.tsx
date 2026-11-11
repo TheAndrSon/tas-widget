@@ -1639,7 +1639,7 @@ function EqualizerPanel({ instance, patchSettings }: PanelProps): JSX.Element {
     ? display.workArea.y + display.workArea.height - Math.round(height * 0.1)
     : 6000
   return (
-    <Section title="Эквалайзер" hint="визуализация текущей музыки">
+    <Section title="Эквалайзер · бета" hint="визуализация текущей музыки">
       <div className="control-group__title">Визуализация</div>
       <VisualizerControls
         value={eq.visualizer}

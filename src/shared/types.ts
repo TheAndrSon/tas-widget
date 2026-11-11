@@ -240,8 +240,6 @@ export interface VisualizerSettings {
   twoColors: boolean
   /** радиус центральной окружности радиального режима, доля меньшей стороны */
   radialRadius: number
-  /** длина лучей радиального режима, доля меньшей стороны */
-  radialLength: number
   /** предельная высота лучей радиального режима, 100% — до дальней границы окна */
   radialMaxHeight: number
   radialHalf: boolean

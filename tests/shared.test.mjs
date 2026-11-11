@@ -58,6 +58,10 @@ test('системный виджет: диски — отдельная нас�
   assert.equal(typeof DEFAULT_SETTINGS.system.showCpu, 'boolean')
 })
 
+test('эквалайзер по умолчанию отключён', () => {
+  assert.equal(DEFAULT_ENABLED.equalizer, false)
+})
+
 test('эквалайзер: увеличение, прозрачность и растягивание сохранены в дефолтах', () => {
   assert.equal(typeof DEFAULT_SETTINGS.equalizer.scale, 'number')
   assert.equal(typeof DEFAULT_SETTINGS.equalizer.opacity, 'number')
@@ -70,7 +74,6 @@ test('визуализатор: отражение, прозрачность, р
   assert.equal(typeof visualizer.inactiveOpacity, 'number')
   assert.equal(typeof visualizer.spectrumOpacity, 'number')
   assert.equal(typeof visualizer.radialRadius, 'number')
-  assert.equal(typeof visualizer.radialLength, 'number')
   assert.equal(typeof visualizer.particleMaskWidth, 'number')
   assert.equal(typeof visualizer.particleMaskHeight, 'number')
   assert.equal(typeof visualizer.spectrumSmoothing, 'number')

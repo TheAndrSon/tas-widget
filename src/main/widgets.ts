@@ -48,6 +48,7 @@ export class WidgetManager {
   private gridHidden = false
   private moveTimers = new Map<string, NodeJS.Timeout>()
   private suppressMove = new Set<string>()
+  private layerBeforeStretch = new Map<string, WidgetInstance['layer']>()
   private quitting = false
 
   constructor(
@@ -814,10 +815,13 @@ export class WidgetManager {
   private applyEqualizerDock(id: string, win: BrowserWindow, instance: WidgetInstance): void {
     const settings = instance.settings as EqualizerSettings
     if (settings.stretch) {
-      if (!instance.locked) {
-        this.store.update(id, { locked: true })
-        this.apply(win, { ...instance, locked: true })
+      const needsDesktop = instance.layer !== 'desktop'
+      const needsLock = !instance.locked
+      if (needsDesktop || needsLock) {
+        this.store.update(id, { layer: 'desktop', locked: true })
+        this.apply(win, { ...instance, layer: 'desktop', locked: true })
       }
+      this.nativeLayer?.setTopmost(win, false)
       const bounds = win.getBounds()
       const chosen =
         settings.displayId == null
@@ -931,8 +935,10 @@ export class WidgetManager {
     const win = this.get(id)
     if (!instance || !win || instance.type !== 'equalizer') return
     if (!stretch) {
+      const previousLayer = this.layerBeforeStretch.get(id) ?? 'always'
+      this.layerBeforeStretch.delete(id)
       this.store.updateSettings(id, { stretch: false })
-      this.store.update(id, { locked: false })
+      this.store.update(id, { locked: false, layer: previousLayer })
       this.store.setManualSize(id, null)
       if (win.isMaximized()) win.unmaximize()
       const next = this.store.get(id)
@@ -966,14 +972,15 @@ export class WidgetManager {
         height: bounds.height
       })
     const area = target.bounds
+    if (instance.layer !== 'desktop') this.layerBeforeStretch.set(id, instance.layer)
     this.store.updateSettings(id, { stretch: true })
-    this.store.update(id, { locked: true })
+    this.store.update(id, { locked: true, layer: 'desktop' })
     if (instance.manualSize) this.store.setManualSize(id, null)
     this.applyStretchBounds(win, area)
     this.store.move(id, area.x, area.y)
     const updated = this.store.get(id)
     if (updated) this.apply(win, updated)
-    this.nativeLayer?.setTopmost(win, instance.layer === 'always')
+    this.nativeLayer?.setTopmost(win, false)
     this.onChange()
   }
 

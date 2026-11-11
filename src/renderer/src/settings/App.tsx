@@ -27,6 +27,7 @@ import {
 } from '../ui/icons'
 
 const SOON_TYPES: WidgetType[] = ['clock', 'weekday', 'twitch']
+const BETA_TYPES: WidgetType[] = ['equalizer']
 
 function readHash(): SettingsTab {
   return window.location.hash.replace(/^#/, '')
@@ -115,6 +116,7 @@ function Sidebar({
               <div className="sidebar__group-head">
                 <span>{WIDGET_META[type].title}</span>
                 {SOON_TYPES.includes(type) && <span className="sidebar__soon">скоро</span>}
+                {BETA_TYPES.includes(type) && <span className="sidebar__beta">бета</span>}
                 {instances.length > 1 && (
                   <span className="sidebar__group-count">{instances.length}</span>
                 )}

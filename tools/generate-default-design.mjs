@@ -27,6 +27,9 @@ const WIDGET_TYPES = [
   'system'
 ]
 
+// Виджеты, которые по умолчанию выключены независимо от текущего профиля.
+const FORCE_DISABLED = new Set(['equalizer'])
+
 const input = process.argv[2]
 if (!input) {
   console.error('Укажите путь к state.json')
@@ -84,6 +87,7 @@ function cleanSettings(type, inputSettings) {
     delete value.visualizer.glowEnabled
     delete value.visualizer.glowIntensity
     delete value.visualizer.glowSpread
+    delete value.visualizer.radialLength
   }
   return value
 }
@@ -108,7 +112,7 @@ for (const type of WIDGET_TYPES) {
   }
   styles[type] = cleanStyle(widget.style)
   settings[type] = cleanSettings(type, widget.settings)
-  enabled[type] = Boolean(widget.enabled)
+  enabled[type] = FORCE_DISABLED.has(type) ? false : Boolean(widget.enabled)
 }
 
 const presets = []
