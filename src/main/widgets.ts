@@ -145,6 +145,15 @@ export class WidgetManager {
         // На Windows всегда-на-верху нужно применять после показа окна:
         // до первого show флаг может быть потерян.
         this.apply(win, this.store.get(instance.id) ?? current)
+        if (current.type === 'equalizer') {
+          const eq = this.store.get(instance.id) ?? current
+          this.applyEqualizerDock(instance.id, win, eq)
+          setTimeout(() => {
+            const latest = this.store.get(instance.id)
+            const widget = this.get(instance.id)
+            if (latest && widget) this.applyEqualizerDock(instance.id, widget, latest)
+          }, 350)
+        }
         // Рамку DWM убираем после показа и включения click-through: если
         // сделать это до show, Windows может вернуть её при смене стилей.
         this.scheduleBorderCleanup(win)
