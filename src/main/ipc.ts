@@ -3,10 +3,12 @@ import type {
   City,
   MusicAction,
   SettingsPatch,
+  WeatherInstancePatch,
   WeatherProvider,
   WeatherUnits,
   WidgetId
 } from '../shared/types'
+import { WIDGET_IDS } from '../shared/widgets'
 import type { MusicService } from './music'
 import { openSettingsWindow } from './settings-window'
 import type { Store } from './store'
@@ -33,10 +35,7 @@ export function registerIpc({ store, manager, monitor, music, weather }: Deps): 
     return next
   })
 
-  ipcMain.handle('widget:open', (_event, id: WidgetId) => {
-    manager.open(id)
-    return true
-  })
+  ipcMain.handle('widget:open', (_event, id: WidgetId) => Boolean(manager.open(id)))
 
   ipcMain.handle('widget:close', (_event, id: WidgetId) => {
     manager.close(id)
@@ -48,8 +47,8 @@ export function registerIpc({ store, manager, monitor, music, weather }: Deps): 
     return true
   })
 
-  ipcMain.handle('settings:open', () => {
-    openSettingsWindow()
+  ipcMain.handle('settings:open', (_event, tab: unknown) => {
+    openSettingsWindow(WIDGET_IDS.includes(tab as WidgetId) ? (tab as WidgetId) : undefined)
     return true
   })
 
@@ -77,6 +76,44 @@ export function registerIpc({ store, manager, monitor, music, weather }: Deps): 
     }
   )
 
+  ipcMain.handle('weather:add', (_event, city: unknown) => {
+    if (!city || typeof city !== 'object') return null
+    const instance = store.addWeather(city as City)
+    if (!instance) return null
+    manager.openWeather(instance)
+    manager.broadcast('settings:changed', store.state)
+    return instance
+  })
+
+  ipcMain.handle('weather:remove', (_event, id: unknown) => {
+    if (typeof id !== 'string') return false
+    manager.closeWeather(id)
+    const removed = store.removeWeather(id)
+    if (removed) manager.broadcast('settings:changed', store.state)
+    return removed
+  })
+
+  ipcMain.handle('weather:open', (_event, id: unknown) => {
+    if (typeof id !== 'string') return false
+    const instance = store.weatherById(id)
+    if (!instance) return false
+    manager.openWeather(instance)
+    return true
+  })
+
+  ipcMain.handle('weather:close', (_event, id: unknown) => {
+    if (typeof id !== 'string') return false
+    manager.closeWeather(id)
+    return true
+  })
+
+  ipcMain.handle('weather:patch', (_event, id: unknown, patch: unknown) => {
+    if (typeof id !== 'string' || !patch || typeof patch !== 'object') return null
+    const instance = store.updateWeather(id, patch as WeatherInstancePatch)
+    if (instance) manager.broadcast('settings:changed', store.state)
+    return instance
+  })
+
   ipcMain.handle('music:get', () => music.getSnapshot())
 
   ipcMain.on('music:control', (_event, action: unknown, positionMs: unknown) => {
@@ -94,11 +131,23 @@ export function registerIpc({ store, manager, monitor, music, weather }: Deps): 
   ipcMain.handle('ui:context-menu', event => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) return false
-    const id = manager.idFor(event.sender)
+    const info = manager.describe(event.sender)
 
     const template = [
-      ...(id ? [{ label: 'Настройки…', click: () => openSettingsWindow() } as const] : []),
-      ...(id ? [{ label: 'Скрыть виджет', click: () => manager.close(id) } as const] : []),
+      ...(info
+        ? [{ label: 'Настройки…', click: () => openSettingsWindow(info.type) } as const]
+        : []),
+      ...(info
+        ? [
+            {
+              label: info.instanceId ? 'Скрыть город' : 'Скрыть виджет',
+              click: () => {
+                if (info.instanceId) manager.closeWeather(info.instanceId)
+                else manager.close(info.type)
+              }
+            } as const
+          ]
+        : []),
       { type: 'separator' as const },
       { label: 'Выход', click: () => app.quit() }
     ]

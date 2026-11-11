@@ -36,7 +36,7 @@ if (!app.requestSingleInstanceLock()) {
     const monitor = new SystemMonitor(sample => active.broadcast('system:sample', sample))
 
     registerIpc({ store, manager: active, monitor, music, weather })
-    new AppTray(active).create()
+    new AppTray(active, store).create()
     active.restore()
     monitor.start(store.state.system.intervalMs)
 

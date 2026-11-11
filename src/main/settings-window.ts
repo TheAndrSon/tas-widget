@@ -1,13 +1,15 @@
 import { BrowserWindow } from 'electron'
 import { join } from 'node:path'
+import type { WidgetId } from '../shared/types'
 
 let settingsWindow: BrowserWindow | null = null
 
-export function openSettingsWindow(): BrowserWindow {
+export function openSettingsWindow(tab?: WidgetId): BrowserWindow {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     if (settingsWindow.isMinimized()) settingsWindow.restore()
     settingsWindow.show()
     settingsWindow.focus()
+    if (tab) settingsWindow.webContents.send('settings:tab', tab)
     return settingsWindow
   }
 
@@ -31,10 +33,13 @@ export function openSettingsWindow(): BrowserWindow {
   win.removeMenu()
 
   const devUrl = process.env['ELECTRON_RENDERER_URL']
+  const query = tab ? `?tab=${tab}` : ''
   if (devUrl) {
-    void win.loadURL(`${devUrl}/settings.html`)
+    void win.loadURL(`${devUrl}/settings.html${query}`)
   } else {
-    void win.loadFile(join(__dirname, '../renderer/settings.html'))
+    void win.loadFile(join(__dirname, '../renderer/settings.html'), {
+      query: tab ? { tab } : {}
+    })
   }
 
   win.once('ready-to-show', () => {

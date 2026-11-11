@@ -14,7 +14,9 @@ function Placeholder({ id }: { id: string }): ReactElement {
 }
 
 export function App(): ReactElement {
-  const id = new URLSearchParams(window.location.search).get('widget') as WidgetId | null
+  const params = new URLSearchParams(window.location.search)
+  const id = params.get('widget') as WidgetId | null
+  const instance = params.get('instance') ?? ''
 
   let content: ReactNode
   switch (id) {
@@ -25,7 +27,7 @@ export function App(): ReactElement {
       content = <MusicWidget />
       break
     case 'weather':
-      content = <WeatherWidget />
+      content = <WeatherWidget instanceId={instance} />
       break
     default:
       content = <Placeholder id={id ?? 'unknown'} />

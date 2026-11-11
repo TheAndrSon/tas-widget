@@ -43,14 +43,22 @@ export interface City {
   timezone?: string
 }
 
+export interface AtmosphereIntensity {
+  dawn: number
+  day: number
+  dusk: number
+  night: number
+}
+
 export interface WeatherSettings {
-  city: City | null
   units: WeatherUnits
   provider: WeatherProvider
   /** ключ Яндекс.Погоды, хранится локально */
   yandexKey: string
   /** отдельная атмосфера по времени суток */
   atmosphere: boolean
+  /** яркость каждого состояния, 0..1 */
+  atmosphereIntensity: AtmosphereIntensity
   forecastDays: 0 | 3 | 5
   showCity: boolean
   showFeelsLike: boolean
@@ -59,18 +67,35 @@ export interface WeatherSettings {
   sunMode: SunMode
 }
 
+export interface WeatherInstance {
+  id: string
+  city: City
+  x: number | null
+  y: number | null
+  enabled: boolean
+  settings: WeatherSettings
+}
+
+export interface WeatherState {
+  instances: WeatherInstance[]
+}
+
+export interface WeatherInstancePatch {
+  city?: City
+  settings?: Partial<WeatherSettings>
+}
+
 export interface AppSettings {
   widgets: Record<WidgetId, WidgetPlacement>
   system: SystemSettings
   music: MusicSettings
-  weather: WeatherSettings
+  weather: WeatherState
 }
 
 export type SettingsPatch = {
   widgets?: Partial<Record<WidgetId, Partial<WidgetPlacement>>>
   system?: Partial<SystemSettings>
   music?: Partial<MusicSettings>
-  weather?: Partial<WeatherSettings>
 }
 
 export interface DiskSample {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactElement } from 'react'
-import type { WeatherSnapshot } from '@shared/types'
+import type { AtmosphereIntensity, WeatherSnapshot } from '@shared/types'
 import { cityMinutes } from '@shared/sun'
 import { useNow } from './useWeather'
 
@@ -8,10 +8,18 @@ function minutes(value: string): number {
   return match ? Number(match[1]) * 60 + Number(match[2]) : 0
 }
 
-export function WeatherAtmosphere({ data }: { data: WeatherSnapshot | null }): ReactElement | null {
+export function WeatherAtmosphere({
+  data,
+  intensity
+}: {
+  data: WeatherSnapshot | null
+  intensity: AtmosphereIntensity
+}): ReactElement | null {
   const now = useNow(60_000)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stateRef = useRef({ dawn: 0, day: 0, dusk: 0, night: 0 })
+  const intensityRef = useRef(intensity)
+  intensityRef.current = intensity
 
   const rise = data?.sun ? minutes(data.sun.sunrise) : 6 * 60
   const set = data?.sun ? minutes(data.sun.sunset) : 20 * 60
@@ -64,8 +72,22 @@ export function WeatherAtmosphere({ data }: { data: WeatherSnapshot | null }): R
       const delta = Math.min(48, timeNow - last) / 1000
       last = timeNow
       const state = stateRef.current
+      const levels = intensityRef.current
+      const level = Math.min(
+        1,
+        state.dawn * levels.dawn +
+          state.day * levels.day +
+          state.dusk * levels.dusk +
+          state.night * levels.night
+      )
       const t = timeNow / 1000
       context.clearRect(0, 0, width, height)
+
+      if (level <= 0.01) {
+        frame = requestAnimationFrame(draw)
+        return
+      }
+      context.globalAlpha = level
 
       const sky = context.createLinearGradient(0, 0, 0, height)
       if (state.night > 0.5) {
@@ -140,6 +162,7 @@ export function WeatherAtmosphere({ data }: { data: WeatherSnapshot | null }): R
         context.arc(sx, sy, radius, 0, Math.PI * 2)
         context.fill()
       }
+      context.globalAlpha = 1
       frame = requestAnimationFrame(draw)
     }
     frame = requestAnimationFrame(draw)

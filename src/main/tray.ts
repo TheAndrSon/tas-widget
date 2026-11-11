@@ -2,12 +2,16 @@ import { app, Menu, Tray, nativeImage } from 'electron'
 import { join } from 'node:path'
 import { readyWidgetIds, WIDGETS } from '../shared/widgets'
 import { openSettingsWindow } from './settings-window'
+import type { Store } from './store'
 import type { WidgetManager } from './widgets'
 
 export class AppTray {
   private tray: Tray | null = null
 
-  constructor(private readonly manager: WidgetManager) {}
+  constructor(
+    private readonly manager: WidgetManager,
+    private readonly store: Store
+  ) {}
 
   create(): void {
     const image = nativeImage.createFromPath(this.iconPath())
@@ -23,15 +27,32 @@ export class AppTray {
   }
 
   private menu(): Menu {
-    const items = readyWidgetIds().map(id => ({
-      label: WIDGETS[id].title,
+    const items = readyWidgetIds()
+      .filter(id => id !== 'weather')
+      .map(id => ({
+        label: WIDGETS[id].title,
+        type: 'checkbox' as const,
+        checked: this.manager.isOpen(id),
+        click: () => this.manager.toggle(id)
+      }))
+
+    const cities = this.store.state.weather.instances.map(instance => ({
+      label: instance.city.name,
       type: 'checkbox' as const,
-      checked: this.manager.isOpen(id),
-      click: () => this.manager.toggle(id)
+      checked: this.manager.isWeatherOpen(instance.id),
+      click: () => this.manager.toggleWeather(instance.id)
     }))
+
+    const weatherMenu = [
+      ...cities,
+      ...(cities.length > 0 ? [{ type: 'separator' as const }] : []),
+      { label: 'Добавить город…', click: () => openSettingsWindow('weather') },
+      { label: 'Настройки погоды…', click: () => openSettingsWindow('weather') }
+    ]
 
     return Menu.buildFromTemplate([
       ...items,
+      { label: 'Погода', submenu: weatherMenu },
       { type: 'separator' },
       { label: 'Открыть все', click: () => this.manager.restore() },
       { label: 'Закрыть все', click: () => this.manager.closeAll() },

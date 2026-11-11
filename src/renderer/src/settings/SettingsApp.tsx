@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
-import type { AppSettings, SettingsPatch, WeatherProvider, WidgetId } from '@shared/types'
+import type {
+  AppSettings,
+  City,
+  SettingsPatch,
+  WeatherInstancePatch,
+  WeatherProvider,
+  WeatherSettings,
+  WidgetId
+} from '@shared/types'
+import { MAX_WEATHER_CITIES } from '@shared/defaults'
 import { WIDGETS } from '@shared/widgets'
 import { CityPicker } from './CityPicker'
 
@@ -60,6 +69,38 @@ interface PanelProps {
   settings: AppSettings
   patch: (value: SettingsPatch) => void
   toggleWidget: (id: WidgetId, enabled: boolean) => void
+  refresh: () => Promise<void>
+}
+
+function Range({
+  value,
+  onChange
+}: {
+  value: number
+  onChange: (value: number) => void
+}): ReactElement {
+  const [local, setLocal] = useState(value)
+
+  useEffect(() => {
+    setLocal(value)
+  }, [value])
+
+  return (
+    <div className="slider">
+      <input
+        type="range"
+        min={0}
+        max={100}
+        value={Math.round(local * 100)}
+        onChange={event => {
+          const next = Number(event.target.value) / 100
+          setLocal(next)
+          onChange(next)
+        }}
+      />
+      <span className="slider__value">{Math.round(local * 100)}%</span>
+    </div>
+  )
 }
 
 function SystemPanel({ settings, patch, toggleWidget }: PanelProps): ReactElement {
@@ -166,169 +207,290 @@ function MusicPanel({ settings, patch, toggleWidget }: PanelProps): ReactElement
   )
 }
 
-function WeatherPanel({ settings, patch, toggleWidget }: PanelProps): ReactElement {
-  const weather = settings.weather
+function WeatherPanel({ settings, refresh }: PanelProps): ReactElement {
+  const instances = settings.weather.instances
+  const [activeId, setActiveId] = useState<string | null>(instances[0]?.id ?? null)
+  const [adding, setAdding] = useState(false)
+  const active = instances.find(instance => instance.id === activeId) ?? instances[0] ?? null
+
+  const update = async (patch: WeatherInstancePatch): Promise<void> => {
+    if (!active) return
+    await window.api.patchWeather(active.id, patch)
+    await refresh()
+  }
+
+  const updateSettings = (patch: Partial<WeatherSettings>): void => {
+    void update({ settings: patch })
+  }
+
+  const addCity = async (city: City): Promise<void> => {
+    const instance = await window.api.addWeather(city)
+    await refresh()
+    setAdding(false)
+    if (instance) setActiveId(instance.id)
+  }
+
+  const removeCity = async (id: string): Promise<void> => {
+    await window.api.removeWeather(id)
+    await refresh()
+  }
+
+  const toggleCity = async (): Promise<void> => {
+    if (!active) return
+    if (active.enabled) await window.api.closeWeather(active.id)
+    else await window.api.openWeather(active.id)
+    await refresh()
+  }
+
+  const patchIntensity = (key: 'dawn' | 'day' | 'dusk' | 'night', value: number): void => {
+    if (!active) return
+    updateSettings({
+      atmosphereIntensity: { ...active.settings.atmosphereIntensity, [key]: value }
+    })
+  }
 
   return (
     <section className="panel">
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Показывать виджет</span>
-          <span className="row__hint">Текущая погода, прогноз и солнце на рабочем столе</span>
-        </div>
-        <Switch
-          checked={settings.widgets.weather.enabled}
-          onChange={value => toggleWidget('weather', value)}
-        />
-      </div>
-
       <div className="row row--stacked">
         <div className="row__text">
-          <span className="row__label">Город</span>
-          <span className="row__hint">Поиск по всему миру через Open-Meteo</span>
+          <span className="row__label">Города</span>
+          <span className="row__hint">До 5 окон, у каждого города свои настройки</span>
         </div>
-        <CityPicker city={weather.city} onPick={city => patch({ weather: { city } })} />
+        <div className="city-list">
+          {instances.map(instance => (
+            <div
+              className={`city-chip ${active?.id === instance.id ? 'is-active' : ''}`}
+              key={instance.id}
+            >
+              <button
+                type="button"
+                className="city-chip__name"
+                onClick={() => setActiveId(instance.id)}
+              >
+                {instance.city.name}
+              </button>
+              <button
+                type="button"
+                className="city-chip__remove"
+                title="Удалить город"
+                onClick={() => void removeCity(instance.id)}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {instances.length < MAX_WEATHER_CITIES && (
+            <button type="button" className="city-add" onClick={() => setAdding(value => !value)}>
+              + Добавить город
+            </button>
+          )}
+        </div>
+        {adding && <CityPicker city={null} onPick={city => void addCity(city)} />}
       </div>
 
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Единицы</span>
-          <span className="row__hint">Температура и скорость ветра</span>
-        </div>
-        <Segmented
-          value={weather.units}
-          options={[
-            { value: 'metric', label: '°C' },
-            { value: 'imperial', label: '°F' }
-          ]}
-          onChange={value => patch({ weather: { units: value } })}
-        />
-      </div>
-
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Источник</span>
-          <span className="row__hint">
-            Open-Meteo по умолчанию; MET Norway и wttr.in дают другую картину осадков
-          </span>
-        </div>
-        <select
-          className="select"
-          value={weather.provider}
-          onChange={event =>
-            patch({ weather: { provider: event.target.value as WeatherProvider } })
-          }
-        >
-          <option value="open-meteo">Open-Meteo</option>
-          <option value="metno">MET Norway</option>
-          <option value="wttr">wttr.in</option>
-          <option value="yandex">Яндекс.Погода</option>
-        </select>
-      </div>
-
-      {weather.provider === 'yandex' && (
-        <div className="row">
-          <div className="row__text">
-            <span className="row__label">Ключ Яндекс.Погоды</span>
-            <span className="row__hint">
-              Хранится локально; при ошибке используется резервный источник
-            </span>
-          </div>
-          <input
-            className="text-input"
-            type="password"
-            value={weather.yandexKey}
-            placeholder="X-Yandex-API-Key"
-            onChange={event => patch({ weather: { yandexKey: event.target.value } })}
-          />
-        </div>
+      {!active && (
+        <p className="note">Городов пока нет. Добавьте город, чтобы открыть окно погоды.</p>
       )}
 
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Атмосфера по времени суток</span>
-          <span className="row__hint">Рассвет, солнце, закат, луна и звёзды</span>
-        </div>
-        <Switch
-          checked={weather.atmosphere}
-          onChange={value => patch({ weather: { atmosphere: value } })}
-        />
-      </div>
+      {active && (
+        <>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Показывать это окно</span>
+              <span className="row__hint">{active.city.name}</span>
+            </div>
+            <Switch checked={active.enabled} onChange={() => void toggleCity()} />
+          </div>
 
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Прогноз</span>
-          <span className="row__hint">Сколько дней показывать</span>
-        </div>
-        <Segmented
-          value={String(weather.forecastDays)}
-          options={[
-            { value: '0', label: 'Без' },
-            { value: '3', label: '3 дня' },
-            { value: '5', label: '5 дней' }
-          ]}
-          onChange={value => patch({ weather: { forecastDays: Number(value) as 0 | 3 | 5 } })}
-        />
-      </div>
+          <div className="row row--stacked">
+            <div className="row__text">
+              <span className="row__label">Город</span>
+              <span className="row__hint">Поиск по всему миру через Open-Meteo</span>
+            </div>
+            <CityPicker city={active.city} onPick={city => void update({ city })} />
+          </div>
 
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Солнце</span>
-          <span className="row__hint">Восход, закат и длина светового дня</span>
-        </div>
-        <Segmented
-          value={weather.sunMode}
-          options={[
-            { value: 'off', label: 'Нет' },
-            { value: 'compact', label: 'Компактно' },
-            { value: 'arc', label: 'Дуга' }
-          ]}
-          onChange={value => patch({ weather: { sunMode: value } })}
-        />
-      </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Единицы</span>
+              <span className="row__hint">Температура и скорость ветра</span>
+            </div>
+            <Segmented
+              value={active.settings.units}
+              options={[
+                { value: 'metric', label: '°C' },
+                { value: 'imperial', label: '°F' }
+              ]}
+              onChange={value => updateSettings({ units: value })}
+            />
+          </div>
 
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Название города</span>
-        </div>
-        <Switch
-          checked={weather.showCity}
-          onChange={value => patch({ weather: { showCity: value } })}
-        />
-      </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Источник</span>
+              <span className="row__hint">
+                Open-Meteo по умолчанию; MET Norway и wttr.in дают другую картину осадков
+              </span>
+            </div>
+            <select
+              className="select"
+              value={active.settings.provider}
+              onChange={event =>
+                updateSettings({ provider: event.target.value as WeatherProvider })
+              }
+            >
+              <option value="open-meteo">Open-Meteo</option>
+              <option value="metno">MET Norway</option>
+              <option value="wttr">wttr.in</option>
+              <option value="yandex">Яндекс.Погода</option>
+            </select>
+          </div>
 
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Ощущается как</span>
-        </div>
-        <Switch
-          checked={weather.showFeelsLike}
-          onChange={value => patch({ weather: { showFeelsLike: value } })}
-        />
-      </div>
+          {active.settings.provider === 'yandex' && (
+            <div className="row">
+              <div className="row__text">
+                <span className="row__label">Ключ Яндекс.Погоды</span>
+                <span className="row__hint">
+                  Хранится локально; при ошибке используется резервный источник
+                </span>
+              </div>
+              <input
+                className="text-input"
+                type="password"
+                value={active.settings.yandexKey}
+                placeholder="X-Yandex-API-Key"
+                onChange={event => updateSettings({ yandexKey: event.target.value })}
+              />
+            </div>
+          )}
 
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Ветер</span>
-        </div>
-        <Switch
-          checked={weather.showWind}
-          onChange={value => patch({ weather: { showWind: value } })}
-        />
-      </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Атмосфера по времени суток</span>
+              <span className="row__hint">Рассвет, солнце, закат, луна и звёзды</span>
+            </div>
+            <Switch
+              checked={active.settings.atmosphere}
+              onChange={value => updateSettings({ atmosphere: value })}
+            />
+          </div>
 
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Влажность</span>
-        </div>
-        <Switch
-          checked={weather.showHumidity}
-          onChange={value => patch({ weather: { showHumidity: value } })}
-        />
-      </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Рассвет</span>
+            </div>
+            <Range
+              value={active.settings.atmosphereIntensity.dawn}
+              onChange={value => patchIntensity('dawn', value)}
+            />
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">День</span>
+            </div>
+            <Range
+              value={active.settings.atmosphereIntensity.day}
+              onChange={value => patchIntensity('day', value)}
+            />
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Закат</span>
+            </div>
+            <Range
+              value={active.settings.atmosphereIntensity.dusk}
+              onChange={value => patchIntensity('dusk', value)}
+            />
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Ночь</span>
+            </div>
+            <Range
+              value={active.settings.atmosphereIntensity.night}
+              onChange={value => patchIntensity('night', value)}
+            />
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Прогноз</span>
+              <span className="row__hint">Сколько дней показывать</span>
+            </div>
+            <Segmented
+              value={String(active.settings.forecastDays)}
+              options={[
+                { value: '0', label: 'Без' },
+                { value: '3', label: '3 дня' },
+                { value: '5', label: '5 дней' }
+              ]}
+              onChange={value => updateSettings({ forecastDays: Number(value) as 0 | 3 | 5 })}
+            />
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Солнце</span>
+              <span className="row__hint">Восход, закат и длина светового дня</span>
+            </div>
+            <Segmented
+              value={active.settings.sunMode}
+              options={[
+                { value: 'off', label: 'Нет' },
+                { value: 'compact', label: 'Компактно' },
+                { value: 'arc', label: 'Дуга' }
+              ]}
+              onChange={value => updateSettings({ sunMode: value })}
+            />
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Название города</span>
+            </div>
+            <Switch
+              checked={active.settings.showCity}
+              onChange={value => updateSettings({ showCity: value })}
+            />
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Ощущается как</span>
+            </div>
+            <Switch
+              checked={active.settings.showFeelsLike}
+              onChange={value => updateSettings({ showFeelsLike: value })}
+            />
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Ветер</span>
+            </div>
+            <Switch
+              checked={active.settings.showWind}
+              onChange={value => updateSettings({ showWind: value })}
+            />
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Влажность</span>
+            </div>
+            <Switch
+              checked={active.settings.showHumidity}
+              onChange={value => updateSettings({ showHumidity: value })}
+            />
+          </div>
+        </>
+      )}
 
       <p className="note">
-        Погода обновляется каждые 10 минут. Позиция окна запоминается автоматически.
+        Погода обновляется каждые 10 минут. Позиция каждого окна запоминается автоматически.
       </p>
     </section>
   )
@@ -349,7 +511,10 @@ function PlannedPanel({ id }: { id: WidgetId }): ReactElement {
 
 export function SettingsApp(): ReactElement {
   const [settings, setSettings] = useState<AppSettings | null>(null)
-  const [tab, setTab] = useState<WidgetId>('system')
+  const [tab, setTab] = useState<WidgetId>(() => {
+    const initial = new URLSearchParams(window.location.search).get('tab') as WidgetId | null
+    return initial && TAB_ORDER.includes(initial) ? initial : 'system'
+  })
 
   const refresh = useCallback(async () => {
     setSettings(await window.api.getSettings())
@@ -358,6 +523,8 @@ export function SettingsApp(): ReactElement {
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  useEffect(() => window.api.onSettingsTab(id => setTab(id)), [])
 
   const patch = useCallback(async (value: SettingsPatch) => {
     setSettings(await window.api.patchSettings(value))
@@ -409,15 +576,30 @@ export function SettingsApp(): ReactElement {
         {!settings && <div className="loading">Загружаю настройки…</div>}
 
         {settings && tab === 'system' && (
-          <SystemPanel settings={settings} patch={patch} toggleWidget={toggleWidget} />
+          <SystemPanel
+            settings={settings}
+            patch={patch}
+            toggleWidget={toggleWidget}
+            refresh={refresh}
+          />
         )}
 
         {settings && tab === 'music' && (
-          <MusicPanel settings={settings} patch={patch} toggleWidget={toggleWidget} />
+          <MusicPanel
+            settings={settings}
+            patch={patch}
+            toggleWidget={toggleWidget}
+            refresh={refresh}
+          />
         )}
 
         {settings && tab === 'weather' && (
-          <WeatherPanel settings={settings} patch={patch} toggleWidget={toggleWidget} />
+          <WeatherPanel
+            settings={settings}
+            patch={patch}
+            toggleWidget={toggleWidget}
+            refresh={refresh}
+          />
         )}
 
         {settings && tab !== 'system' && tab !== 'music' && tab !== 'weather' && (

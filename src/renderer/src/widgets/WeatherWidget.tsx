@@ -1,5 +1,11 @@
 import { useEffect, useState, type MouseEvent as ReactMouseEvent, type ReactElement } from 'react'
-import type { AppSettings, WeatherSettings, WeatherSnapshot, WeatherUnits } from '@shared/types'
+import type {
+  AppSettings,
+  WeatherInstance,
+  WeatherSettings,
+  WeatherSnapshot,
+  WeatherUnits
+} from '@shared/types'
 import { weatherInfo } from '@shared/weatherCodes'
 import { WEEKDAYS_SHORT } from '@shared/date'
 import { cityMinutes, formatDaylight, skyPeriod, SKY_PERIOD_LABELS } from '@shared/sun'
@@ -18,26 +24,38 @@ function formatWind(value: number, units: WeatherUnits): string {
   return units === 'imperial' ? `${value} миль/ч` : `${value} м/с`
 }
 
-function useWeatherSettings(): WeatherSettings | null {
-  const [settings, setSettings] = useState<WeatherSettings | null>(null)
+function useWeatherInstance(id: string): {
+  instance: WeatherInstance | null
+  loaded: boolean
+} {
+  const [state, setState] = useState<{ instance: WeatherInstance | null; loaded: boolean }>({
+    instance: null,
+    loaded: false
+  })
 
   useEffect(() => {
     let alive = true
     const apply = (next: AppSettings): void => {
-      if (alive) setSettings(next.weather)
+      if (!alive) return
+      setState({
+        instance: next.weather.instances.find(item => item.id === id) ?? null,
+        loaded: true
+      })
     }
     window.api
       .getSettings()
       .then(apply)
-      .catch(() => undefined)
+      .catch(() => {
+        if (alive) setState({ instance: null, loaded: true })
+      })
     const off = window.api.onSettingsChanged(apply)
     return () => {
       alive = false
       off()
     }
-  }, [])
+  }, [id])
 
-  return settings
+  return state
 }
 
 function minutes(value: string): number {
@@ -159,40 +177,42 @@ function SunPanel({
   )
 }
 
-export function WeatherWidget(): ReactElement | null {
-  const settings = useWeatherSettings()
+export function WeatherWidget({ instanceId }: { instanceId: string }): ReactElement | null {
+  const { instance, loaded } = useWeatherInstance(instanceId)
+  const settings = instance?.settings ?? null
   const { data, error, loading } = useWeather(
-    settings?.city ?? null,
+    instance?.city ?? null,
     settings?.units ?? 'metric',
     settings?.provider ?? 'open-meteo',
     settings?.yandexKey ?? ''
   )
 
-  if (!settings) return null
+  if (!loaded) return null
 
   const onContextMenu = (event: ReactMouseEvent<HTMLDivElement>): void => {
     event.preventDefault()
     void window.api.showContextMenu()
   }
 
-  const effects = (
-    <>
-      {data && <WeatherEffect data={data} />}
-      {settings.atmosphere && data && <WeatherAtmosphere data={data} />}
-    </>
-  )
-
-  if (!settings.city) {
+  if (!instance || !settings) {
     return (
       <div className="widget weather" onContextMenu={onContextMenu}>
-        {effects}
         <div className="wx wx--empty">
-          <div className="wx__empty-title">Город не выбран</div>
-          <div className="wx__empty-hint">Откройте настройки виджета</div>
+          <div className="wx__empty-title">Город не найден</div>
+          <div className="wx__empty-hint">Удалён из настроек</div>
         </div>
       </div>
     )
   }
+
+  const effects = (
+    <>
+      {data && <WeatherEffect data={data} />}
+      {settings.atmosphere && data && (
+        <WeatherAtmosphere data={data} intensity={settings.atmosphereIntensity} />
+      )}
+    </>
+  )
 
   if (!data) {
     return (
@@ -202,7 +222,7 @@ export function WeatherWidget(): ReactElement | null {
           <div className="wx__empty-title">
             {error ? 'Нет данных о погоде' : 'Загружаем погоду…'}
           </div>
-          <div className="wx__empty-hint">{error ?? settings.city.name}</div>
+          <div className="wx__empty-hint">{error ?? instance.city.name}</div>
         </div>
       </div>
     )

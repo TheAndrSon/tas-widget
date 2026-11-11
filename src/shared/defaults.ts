@@ -1,4 +1,4 @@
-import type { AppSettings, City, WidgetId, WidgetPlacement } from './types'
+import type { AppSettings, City, WeatherSettings, WidgetId, WidgetPlacement } from './types'
 import { WIDGETS, readyWidgetIds } from './widgets'
 
 export const CITY_PRESETS: City[] = [
@@ -81,6 +81,27 @@ const widgets = Object.fromEntries(
   Object.keys(WIDGETS).map(id => [id, placement(id as WidgetId)])
 ) as Record<WidgetId, WidgetPlacement>
 
+export const DEFAULT_WEATHER_CITY = CITY_PRESETS[0]
+export const MAX_WEATHER_CITIES = 5
+
+export const DEFAULT_WEATHER_SETTINGS: WeatherSettings = {
+  units: 'metric',
+  provider: 'open-meteo',
+  yandexKey: '',
+  atmosphere: false,
+  atmosphereIntensity: { dawn: 1, day: 1, dusk: 1, night: 1 },
+  forecastDays: 3,
+  showCity: true,
+  showFeelsLike: true,
+  showWind: true,
+  showHumidity: true,
+  sunMode: 'arc'
+}
+
+export function defaultWeatherSettings(): WeatherSettings {
+  return structuredClone(DEFAULT_WEATHER_SETTINGS)
+}
+
 export const DEFAULT_SETTINGS: AppSettings = {
   widgets,
   system: { intervalMs: 2000 },
@@ -91,25 +112,16 @@ export const DEFAULT_SETTINGS: AppSettings = {
     showSource: true
   },
   weather: {
-    city: {
-      id: 524901,
-      name: 'Москва',
-      country: 'Россия',
-      admin1: 'Москва',
-      lat: 55.7558,
-      lon: 37.6173,
-      timezone: 'Europe/Moscow'
-    },
-    units: 'metric',
-    provider: 'open-meteo',
-    yandexKey: '',
-    atmosphere: false,
-    forecastDays: 3,
-    showCity: true,
-    showFeelsLike: true,
-    showWind: true,
-    showHumidity: true,
-    sunMode: 'arc'
+    instances: [
+      {
+        id: 'weather-1',
+        city: structuredClone(DEFAULT_WEATHER_CITY),
+        x: null,
+        y: null,
+        enabled: false,
+        settings: defaultWeatherSettings()
+      }
+    ]
   }
 }
 
