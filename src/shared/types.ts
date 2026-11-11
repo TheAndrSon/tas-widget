@@ -21,14 +21,23 @@ export interface SystemSettings {
   intervalMs: number
 }
 
+export interface MusicSettings {
+  showArt: boolean
+  showProgress: boolean
+  showControls: boolean
+  showSource: boolean
+}
+
 export interface AppSettings {
   widgets: Record<WidgetId, WidgetPlacement>
   system: SystemSettings
+  music: MusicSettings
 }
 
 export type SettingsPatch = {
   widgets?: Partial<Record<WidgetId, Partial<WidgetPlacement>>>
   system?: Partial<SystemSettings>
+  music?: Partial<MusicSettings>
 }
 
 export interface DiskSample {
@@ -44,3 +53,26 @@ export interface SystemSample {
   disks: DiskSample[]
   at: number
 }
+
+export type MusicStatus = 'playing' | 'paused' | 'stopped' | 'closed' | 'unavailable'
+
+export interface MusicSnapshot {
+  status: MusicStatus
+  title?: string
+  artist?: string
+  album?: string
+  source?: string
+  positionMs?: number
+  durationMs?: number
+  playbackRate?: number
+  canPlay?: boolean
+  canNext?: boolean
+  canPrev?: boolean
+  canSeek?: boolean
+  artwork?: string
+  artworkKey?: string
+  updatedAt: number
+  error?: string
+}
+
+export type MusicAction = 'toggle' | 'next' | 'prev' | 'seek'

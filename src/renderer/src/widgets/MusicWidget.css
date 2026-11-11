@@ -1,0 +1,236 @@
+.widget.music {
+  flex-direction: row;
+  align-items: center;
+  gap: 13px;
+  height: 100vh;
+  overflow: hidden;
+  -webkit-app-region: drag;
+}
+
+.music--empty {
+  align-items: center;
+}
+
+.music__art {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(168, 230, 193, 0.3), rgba(120, 150, 255, 0.2));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.music__art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.music__art--empty,
+.music__art-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: rgba(214, 251, 229, 0.72);
+}
+
+.music__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.music__title {
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music__sub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.music__artist {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music__dot {
+  opacity: 0.5;
+}
+
+.music__source {
+  color: var(--muted-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music__state {
+  margin-left: auto;
+  flex: none;
+  padding: 1px 4px;
+  border: 1px solid rgba(168, 230, 193, 0.24);
+  border-radius: 4px;
+  color: #a8e6c1;
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.music__progress {
+  margin-top: 8px;
+}
+
+.music__bar {
+  position: relative;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border-strong);
+  overflow: visible;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.music__bar::before {
+  content: '';
+  position: absolute;
+  inset: -7px 0;
+}
+
+.music__bar-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: rgba(168, 230, 193, 0.22);
+  pointer-events: none;
+}
+
+.music__bar-fill {
+  position: relative;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(168, 230, 193, 0.5), #a8e6c1);
+  transition: width 0.45s linear;
+  pointer-events: none;
+}
+
+.music__bar-knob {
+  position: absolute;
+  right: -3.5px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #eafff3;
+  box-shadow: 0 0 8px rgba(168, 230, 193, 0.6);
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.music__progress.is-seekable:hover .music__bar-knob,
+.music__progress.is-seekable .music__bar:active .music__bar-knob {
+  opacity: 1;
+}
+
+.music__times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  color: var(--muted-dim);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.music__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.music .no-drag,
+.music__ctrl,
+.music__bar {
+  -webkit-app-region: no-drag;
+}
+
+.music__ctrl {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  line-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.12s ease;
+}
+
+.music__ctrl svg {
+  display: block;
+  transform: translateX(0.4px);
+}
+
+.music__ctrl:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.music__ctrl:active {
+  transform: scale(0.92);
+}
+
+.music__ctrl:focus {
+  outline: none;
+}
+
+.music__ctrl:focus-visible {
+  outline: 1px solid rgba(168, 230, 193, 0.55);
+  outline-offset: 1px;
+}
+
+.music__ctrl--main {
+  border-color: rgba(168, 230, 193, 0.3);
+  background: rgba(168, 230, 193, 0.16);
+  color: #e2fcec;
+}
+
+.music__ctrl--main:hover {
+  background: rgba(168, 230, 193, 0.26);
+}
+
+.music__ctrl--main:active {
+  background: rgba(168, 230, 193, 0.34);
+}
+
+.music__ctrl:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

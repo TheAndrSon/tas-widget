@@ -11,7 +11,13 @@ const widgets = Object.fromEntries(
 
 export const DEFAULT_SETTINGS: AppSettings = {
   widgets,
-  system: { intervalMs: 2000 }
+  system: { intervalMs: 2000 },
+  music: {
+    showArt: true,
+    showProgress: true,
+    showControls: true,
+    showSource: true
+  }
 }
 
 export function defaultPlacement(id: WidgetId): WidgetPlacement {

@@ -1,9 +1,9 @@
 # HANDOFF
 
-## Состояние на 2026-11-10
+## Состояние на 2026-11-11
 
-Каркас и окно настроек готовы. Проверено: `typecheck`, `build`, запуск Electron, CDP-проба.
-Git инициализирован, коммит каркаса `cb6043c`.
+Каркас, окно настроек и виджет музыки готовы. Проверено: `typecheck`, `build`, запуск Electron,
+CDP-проба (окно, настройки, живые изменения, остановка SMTC-процесса).
 
 ## Что сделано
 
@@ -18,6 +18,15 @@ Git инициализирован, коммит каркаса `cb6043c`.
 - Общие стили: `styles/tokens.css` (цвета, радиусы, тени, шрифт), `settings/settings.css`.
 - Открытие настроек: трей, правый клик по виджету, `window.api.openSettings()`.
 - Документация: `AGENTS.md`, `docs/PROJECT_GUIDE.md`, `README.md`.
+- Музыка (SMTC): `main/music.ts`, `main/paths.ts`, `resources/smtc.ps1`,
+  `resources/smtc-control.ps1`. Старт при открытии виджета, стоп при закрытии.
+- `shared/types.ts`: `MusicSettings`, `MusicStatus`, `MusicSnapshot`, `MusicAction`.
+- IPC: `music:get`, `music:control`, broadcast `music:sample`; `settings:changed` для живых
+  настроек виджетов.
+- `MusicWidget.tsx` + `MusicWidget.css`: обложка, трек, плеер, прогресс, перемотка, кнопки.
+  Порт старого вида, зелёный акцент, фикс залипания фокуса кнопок (`blur` + `:focus-visible`).
+- Вкладка «Музыка» в настройках: вкл/выкл виджета, обложка, прогресс, кнопки, название плеера.
+- `package.json`: `build.extraResources` для `smtc*.ps1` (упаковка).
 
 ## Проверено
 
@@ -26,17 +35,17 @@ Git инициализирован, коммит каркаса `cb6043c`.
 - Запуск `electron .`: окно «TAS Widget», `settings.json` создаётся.
 - CDP: окно настроек открывается, вкладки и текст на месте; смена периода опроса
   сохраняется в `settings.json` (проверено 5000 мс, затем возвращено 2000).
+- Музыка: окно 340×150, трек и обложка приходят из Chrome SMTC; переключение
+  `showArt` в настройках применяется на живом виджете; закрытие виджета завершает
+  `smtc.ps1`; вкладка «Музыка» без бейджа «скоро».
 
 ## Следующий шаг
 
-Сессия 2 — музыка (SMTC):
+Сессия 3 — погода:
 
-1. Скопировать `resources/smtc.ps1` и `resources/smtc-control.ps1` из `D:\OpenCode_Projects\Widget`.
-2. Перенести `main/music.ts`, адаптировать под `store`/`ipc`: старт при открытии виджета,
-   стоп при закрытии, broadcast `music:sample`.
-3. Добавить `MusicSettings` в `shared/types.ts`, `defaults.ts`, `store.ts` (normalize).
-4. `preload`: `onMusicSample`; компонент `MusicWidget.tsx`; вкладка «Музыка» в настройках.
-5. Проверка: `typecheck`, `build`, CDP; SMTC при запущенном плеере.
+1. Перенести `main/weather.ts` на open-meteo без ключей.
+2. Несколько экземпляров (города) — сменить модель настроек с `Record<WidgetId>` на список.
+3. `WeatherWidget.tsx` + вкладка «Погода», проверка `typecheck`, `build`, CDP.
 
 ## Решения по процессу
 

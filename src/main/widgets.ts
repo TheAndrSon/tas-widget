@@ -8,12 +8,20 @@ import type { Store } from './store'
 const GAP = 12
 const MARGIN = 24
 
+interface WidgetHooks {
+  onOpen?: (id: WidgetId) => void
+  onClose?: (id: WidgetId) => void
+}
+
 export class WidgetManager {
   private wins = new Map<WidgetId, BrowserWindow>()
   private moveTimers = new Map<WidgetId, NodeJS.Timeout>()
   private quitting = false
 
-  constructor(private readonly store: Store) {}
+  constructor(
+    private readonly store: Store,
+    private readonly hooks: WidgetHooks = {}
+  ) {}
 
   setQuitting(): void {
     this.quitting = true
@@ -107,10 +115,12 @@ export class WidgetManager {
       if (timer) clearTimeout(timer)
       this.moveTimers.delete(id)
       if (!this.quitting) this.store.setEnabled(id, false)
+      this.hooks.onClose?.(id)
     })
 
     this.wins.set(id, win)
     this.store.setEnabled(id, true)
+    this.hooks.onOpen?.(id)
     return win
   }
 

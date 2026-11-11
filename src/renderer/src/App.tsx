@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from 'react'
 import type { WidgetId } from '@shared/types'
+import { MusicWidget } from './widgets/MusicWidget'
 import { SystemWidget } from './widgets/SystemWidget'
 
 function Placeholder({ id }: { id: string }): ReactElement {
@@ -18,6 +19,9 @@ export function App(): ReactElement {
   switch (id) {
     case 'system':
       content = <SystemWidget />
+      break
+    case 'music':
+      content = <MusicWidget />
       break
     default:
       content = <Placeholder id={id ?? 'unknown'} />

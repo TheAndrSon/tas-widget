@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, ipcMain } from 'electron'
-import type { SettingsPatch, WidgetId } from '../shared/types'
+import type { MusicAction, SettingsPatch, WidgetId } from '../shared/types'
+import type { MusicService } from './music'
 import { openSettingsWindow } from './settings-window'
 import type { Store } from './store'
 import type { SystemMonitor } from './system-monitor'
@@ -9,15 +10,17 @@ interface Deps {
   store: Store
   manager: WidgetManager
   monitor: SystemMonitor
+  music: MusicService
 }
 
-export function registerIpc({ store, manager, monitor }: Deps): void {
+export function registerIpc({ store, manager, monitor, music }: Deps): void {
   ipcMain.handle('settings:get', () => store.state)
 
   ipcMain.handle('settings:patch', (_event, patch: SettingsPatch) => {
     const previous = store.state.system.intervalMs
     const next = store.patch(patch)
     if (next.system.intervalMs !== previous) monitor.restart(next.system.intervalMs)
+    manager.broadcast('settings:changed', next)
     return next
   })
 
@@ -39,6 +42,20 @@ export function registerIpc({ store, manager, monitor }: Deps): void {
   ipcMain.handle('settings:open', () => {
     openSettingsWindow()
     return true
+  })
+
+  ipcMain.handle('music:get', () => music.getSnapshot())
+
+  ipcMain.on('music:control', (_event, action: unknown, positionMs: unknown) => {
+    if (action === 'seek') {
+      if (typeof positionMs === 'number' && Number.isFinite(positionMs)) {
+        music.seek(positionMs)
+      }
+      return
+    }
+    if (action === 'toggle' || action === 'next' || action === 'prev') {
+      music.control(action as MusicAction)
+    }
   })
 
   ipcMain.handle('ui:context-menu', event => {

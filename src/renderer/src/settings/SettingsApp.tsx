@@ -75,6 +75,71 @@ function SystemPanel({ settings, patch, toggleWidget }: PanelProps): ReactElemen
   )
 }
 
+function MusicPanel({ settings, patch, toggleWidget }: PanelProps): ReactElement {
+  const music = settings.music
+
+  return (
+    <section className="panel">
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Показывать виджет</span>
+          <span className="row__hint">Трек из системной медиа-сессии Windows</span>
+        </div>
+        <Switch
+          checked={settings.widgets.music.enabled}
+          onChange={value => toggleWidget('music', value)}
+        />
+      </div>
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Обложка</span>
+          <span className="row__hint">Обложка альбома из медиа-сессии</span>
+        </div>
+        <Switch checked={music.showArt} onChange={value => patch({ music: { showArt: value } })} />
+      </div>
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Прогресс и время</span>
+          <span className="row__hint">Шкала трека с перемоткой по клику</span>
+        </div>
+        <Switch
+          checked={music.showProgress}
+          onChange={value => patch({ music: { showProgress: value } })}
+        />
+      </div>
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Кнопки управления</span>
+          <span className="row__hint">Предыдущий трек, пауза и следующий трек</span>
+        </div>
+        <Switch
+          checked={music.showControls}
+          onChange={value => patch({ music: { showControls: value } })}
+        />
+      </div>
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Название плеера</span>
+          <span className="row__hint">Яндекс Музыка, Spotify, AIMP и другие</span>
+        </div>
+        <Switch
+          checked={music.showSource}
+          onChange={value => patch({ music: { showSource: value } })}
+        />
+      </div>
+
+      <p className="note">
+        Виджет работает через Windows SMTC и не требует настройки плеера. Позиция окна запоминается
+        автоматически.
+      </p>
+    </section>
+  )
+}
+
 function PlannedPanel({ id }: { id: WidgetId }): ReactElement {
   return (
     <section className="panel panel--empty">
@@ -153,7 +218,11 @@ export function SettingsApp(): ReactElement {
           <SystemPanel settings={settings} patch={patch} toggleWidget={toggleWidget} />
         )}
 
-        {settings && tab !== 'system' && <PlannedPanel id={tab} />}
+        {settings && tab === 'music' && (
+          <MusicPanel settings={settings} patch={patch} toggleWidget={toggleWidget} />
+        )}
+
+        {settings && tab !== 'system' && tab !== 'music' && <PlannedPanel id={tab} />}
       </main>
     </div>
   )

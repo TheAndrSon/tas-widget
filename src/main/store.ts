@@ -24,6 +24,11 @@ function normalize(raw: unknown): AppSettings {
     state.system.intervalMs = Math.min(10000, Math.max(500, Math.round(interval)))
   }
 
+  for (const key of ['showArt', 'showProgress', 'showControls', 'showSource'] as const) {
+    const value = source.music?.[key]
+    if (typeof value === 'boolean') state.music[key] = value
+  }
+
   return state
 }
 
@@ -46,6 +51,9 @@ export class Store {
       this.state.system = { ...this.state.system, ...patch.system }
       const interval = this.state.system.intervalMs
       this.state.system.intervalMs = Math.min(10000, Math.max(500, Math.round(interval)))
+    }
+    if (patch.music) {
+      this.state.music = { ...this.state.music, ...patch.music }
     }
     if (patch.widgets) {
       for (const id of WIDGET_IDS) {
