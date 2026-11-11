@@ -646,3 +646,36 @@ body {
   background: rgba(255, 255, 255, 0.1);
   color: var(--text);
 }
+
+.global-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.global-actions__title {
+  color: var(--muted-dim);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.global-actions button {
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text-soft);
+  font-family: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.global-actions button:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text);
+}

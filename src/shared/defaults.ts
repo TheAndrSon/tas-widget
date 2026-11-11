@@ -82,7 +82,13 @@ export const CITY_PRESETS: City[] = [
 ]
 
 function placement(id: WidgetId): WidgetPlacement {
-  return { x: null, y: null, enabled: WIDGETS[id].ready && id === 'system' }
+  return {
+    x: null,
+    y: null,
+    enabled: WIDGETS[id].ready && id === 'system',
+    locked: false,
+    layer: 1
+  }
 }
 
 const widgets = Object.fromEntries(
@@ -138,6 +144,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
         x: null,
         y: null,
         enabled: false,
+        locked: false,
+        layer: 1,
         settings: defaultWeatherSettings()
       }
     ]
@@ -151,6 +159,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
         width: DEFAULT_EQUALIZER_WIDTH,
         height: DEFAULT_EQUALIZER_HEIGHT,
         enabled: false,
+        locked: false,
+        layer: 1,
         settings: defaultEqualizerSettings()
       }
     ]

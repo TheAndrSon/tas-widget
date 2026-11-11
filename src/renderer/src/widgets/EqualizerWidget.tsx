@@ -61,7 +61,7 @@ export function EqualizerWidget({ instanceId }: { instanceId: string }): ReactEl
     <div
       className={`widget eq${settings.windowed ? '' : ' is-windowless'}${
         settings.visualizer.mode === 'off' ? ' is-empty' : ''
-      }`}
+      }${instance.locked ? ' is-locked' : ''}`}
       onContextMenu={onContextMenu}
     >
       <div className="eq__canvas">

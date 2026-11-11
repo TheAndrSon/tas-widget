@@ -8,6 +8,7 @@ import {
 } from 'react'
 import type { AppSettings, MusicSettings, MusicSnapshot } from '@shared/types'
 import { IconNext, IconNote, IconPause, IconPlay, IconPrev } from './icons'
+import { useWidgetPlacement } from './useWidgetPlacement'
 import './MusicWidget.css'
 
 function formatDuration(ms: number): string {
@@ -90,6 +91,7 @@ function useProgress(snapshot: MusicSnapshot | null): { position: number; durati
 
 export function MusicWidget(): ReactElement | null {
   const snapshot = useMusicSnapshot()
+  const placement = useWidgetPlacement('music')
   const settings = useMusicSettings()
   const { position, duration } = useProgress(snapshot)
   const barRef = useRef<HTMLDivElement>(null)
@@ -115,7 +117,10 @@ export function MusicWidget(): ReactElement | null {
         ? 'Не удалось подключиться к медиа-сессии'
         : 'Включите музыку в Яндекс Музыке или другом плеере'
     return (
-      <div className="widget music music--empty" onContextMenu={onContextMenu}>
+      <div
+        className={`widget music music--empty${placement?.locked ? ' is-locked' : ''}`}
+        onContextMenu={onContextMenu}
+      >
         <div className="music__art music__art--empty">
           <IconNote size={22} />
         </div>
@@ -160,7 +165,10 @@ export function MusicWidget(): ReactElement | null {
   }
 
   return (
-    <div className="widget music" onContextMenu={onContextMenu}>
+    <div
+      className={`widget music${placement?.locked ? ' is-locked' : ''}`}
+      onContextMenu={onContextMenu}
+    >
       {settings.showArt && (
         <div className="music__art">
           {snapshot.artwork ? (

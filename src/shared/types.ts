@@ -9,11 +9,21 @@ export interface WidgetMeta {
   ready: boolean
 }
 
+export type WindowLayer = 0 | 1 | 2 | 3
+
 export interface WidgetPlacement {
   /** null — позиция по умолчанию (правый верхний угол). */
   x: number | null
   y: number | null
   enabled: boolean
+  locked: boolean
+  /** 0 — рабочий стол, 1–3 — поверх остальных окон. */
+  layer: WindowLayer
+}
+
+export interface WindowTarget {
+  type: WidgetId
+  instanceId?: string
 }
 
 export interface SystemSettings {
@@ -73,6 +83,8 @@ export interface WeatherInstance {
   x: number | null
   y: number | null
   enabled: boolean
+  locked: boolean
+  layer: WindowLayer
   settings: WeatherSettings
 }
 
@@ -140,6 +152,8 @@ export interface EqualizerInstance {
   width: number
   height: number
   enabled: boolean
+  locked: boolean
+  layer: WindowLayer
   settings: EqualizerSettings
 }
 

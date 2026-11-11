@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { SystemSample } from '@shared/types'
+import { useWidgetPlacement } from './useWidgetPlacement'
 import './SystemWidget.css'
 
 function bytes(value: number): string {
@@ -36,6 +37,7 @@ function Metric({ label, value, fill, tone }: MetricProps): ReactElement {
 
 export function SystemWidget(): ReactElement {
   const [sample, setSample] = useState<SystemSample | null>(null)
+  const placement = useWidgetPlacement('system')
 
   useEffect(() => window.api.onSystemSample(setSample), [])
 
@@ -45,7 +47,7 @@ export function SystemWidget(): ReactElement {
 
   return (
     <div
-      className="widget system"
+      className={`widget system${placement?.locked ? ' is-locked' : ''}`}
       onContextMenu={event => {
         event.preventDefault()
         void window.api.showContextMenu()

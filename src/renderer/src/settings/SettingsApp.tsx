@@ -9,7 +9,8 @@ import type {
   WeatherInstancePatch,
   WeatherProvider,
   WeatherSettings,
-  WidgetId
+  WidgetId,
+  WindowLayer
 } from '@shared/types'
 import { MAX_EQUALIZER_COPIES, MAX_WEATHER_CITIES } from '@shared/defaults'
 import { VISUALIZER_MODES, VISUALIZER_PALETTES } from '@shared/visualizer'
@@ -146,7 +147,62 @@ function Slider({
   )
 }
 
-function SystemPanel({ settings, patch, toggleWidget }: PanelProps): ReactElement {
+function WindowControls({
+  locked,
+  layer,
+  onLocked,
+  onLayer,
+  onReset
+}: {
+  locked: boolean
+  layer: WindowLayer
+  onLocked: (locked: boolean) => void
+  onLayer: (layer: WindowLayer) => void
+  onReset: () => void
+}): ReactElement {
+  return (
+    <>
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Заблокировать</span>
+          <span className="row__hint">Окно нельзя перетащить, кнопки продолжают работать</span>
+        </div>
+        <Switch checked={locked} onChange={onLocked} />
+      </div>
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Слой</span>
+          <span className="row__hint">0 — рабочий стол, 1–3 — поверх остальных окон</span>
+        </div>
+        <select
+          className="select"
+          value={layer}
+          onChange={event => onLayer(Number(event.target.value) as WindowLayer)}
+        >
+          <option value={0}>Рабочий стол</option>
+          <option value={1}>Слой 1</option>
+          <option value={2}>Слой 2</option>
+          <option value={3}>Слой 3</option>
+        </select>
+      </div>
+
+      <div className="row">
+        <div className="row__text">
+          <span className="row__label">Положение</span>
+          <span className="row__hint">Вернуть окно на стандартное место</span>
+        </div>
+        <div className="align-buttons">
+          <button type="button" onClick={onReset}>
+            Сбросить положение
+          </button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+function SystemPanel({ settings, patch, toggleWidget, refresh }: PanelProps): ReactElement {
   return (
     <section className="panel">
       <div className="row">
@@ -159,6 +215,14 @@ function SystemPanel({ settings, patch, toggleWidget }: PanelProps): ReactElemen
           onChange={value => toggleWidget('system', value)}
         />
       </div>
+
+      <WindowControls
+        locked={settings.widgets.system.locked}
+        layer={settings.widgets.system.layer}
+        onLocked={locked => void window.api.setWindowLock({ type: 'system' }, locked).then(refresh)}
+        onLayer={layer => void window.api.setWindowLayer({ type: 'system' }, layer).then(refresh)}
+        onReset={() => void window.api.resetWindowPosition({ type: 'system' }).then(refresh)}
+      />
 
       <div className="row">
         <div className="row__text">
@@ -185,7 +249,7 @@ function SystemPanel({ settings, patch, toggleWidget }: PanelProps): ReactElemen
   )
 }
 
-function MusicPanel({ settings, patch, toggleWidget }: PanelProps): ReactElement {
+function MusicPanel({ settings, patch, toggleWidget, refresh }: PanelProps): ReactElement {
   const music = settings.music
 
   return (
@@ -200,6 +264,14 @@ function MusicPanel({ settings, patch, toggleWidget }: PanelProps): ReactElement
           onChange={value => toggleWidget('music', value)}
         />
       </div>
+
+      <WindowControls
+        locked={settings.widgets.music.locked}
+        layer={settings.widgets.music.layer}
+        onLocked={locked => void window.api.setWindowLock({ type: 'music' }, locked).then(refresh)}
+        onLayer={layer => void window.api.setWindowLayer({ type: 'music' }, layer).then(refresh)}
+        onReset={() => void window.api.resetWindowPosition({ type: 'music' }).then(refresh)}
+      />
 
       <div className="row">
         <div className="row__text">
@@ -745,6 +817,26 @@ function WeatherPanel({ settings, refresh }: PanelProps): ReactElement {
             <Switch checked={active.enabled} onChange={() => void toggleCity()} />
           </div>
 
+          <WindowControls
+            locked={active.locked}
+            layer={active.layer}
+            onLocked={locked =>
+              void window.api
+                .setWindowLock({ type: 'weather', instanceId: active.id }, locked)
+                .then(refresh)
+            }
+            onLayer={layer =>
+              void window.api
+                .setWindowLayer({ type: 'weather', instanceId: active.id }, layer)
+                .then(refresh)
+            }
+            onReset={() =>
+              void window.api
+                .resetWindowPosition({ type: 'weather', instanceId: active.id })
+                .then(refresh)
+            }
+          />
+
           <div className="row row--stacked">
             <div className="row__text">
               <span className="row__label">Город</span>
@@ -1030,6 +1122,26 @@ function EqualizerPanel({ settings, refresh }: PanelProps): ReactElement {
             <Switch checked={active.enabled} onChange={() => void toggleCopy()} />
           </div>
 
+          <WindowControls
+            locked={active.locked}
+            layer={active.layer}
+            onLocked={locked =>
+              void window.api
+                .setWindowLock({ type: 'equalizer', instanceId: active.id }, locked)
+                .then(refresh)
+            }
+            onLayer={layer =>
+              void window.api
+                .setWindowLayer({ type: 'equalizer', instanceId: active.id }, layer)
+                .then(refresh)
+            }
+            onReset={() =>
+              void window.api
+                .resetWindowPosition({ type: 'equalizer', instanceId: active.id })
+                .then(refresh)
+            }
+          />
+
           <div className="row">
             <div className="row__text">
               <span className="row__label">Показывать в окне</span>
@@ -1132,6 +1244,38 @@ export function SettingsApp(): ReactElement {
     [refresh]
   )
 
+  const setAllLocked = useCallback(
+    async (locked: boolean) => {
+      await window.api.lockAll(locked)
+      await refresh()
+    },
+    [refresh]
+  )
+
+  const setAllLayers = useCallback(
+    async (layer: WindowLayer) => {
+      await window.api.layerAll(layer)
+      await refresh()
+    },
+    [refresh]
+  )
+
+  const resetAll = useCallback(async () => {
+    await window.api.resetAllPositions()
+    await refresh()
+  }, [refresh])
+
+  const allLocked = Boolean(
+    settings &&
+    [
+      ...Object.values(settings.widgets),
+      ...settings.weather.instances,
+      ...settings.equalizer.instances
+    ]
+      .filter(Boolean)
+      .every(item => item.locked)
+  )
+
   return (
     <div className="settings">
       <aside className="settings__side">
@@ -1156,6 +1300,22 @@ export function SettingsApp(): ReactElement {
             </button>
           ))}
         </nav>
+
+        <div className="global-actions">
+          <div className="global-actions__title">Все виджеты</div>
+          <button type="button" onClick={() => void setAllLocked(!allLocked)}>
+            {allLocked ? 'Разблокировать все' : 'Заблокировать все'}
+          </button>
+          <button type="button" onClick={() => void setAllLayers(0)}>
+            На рабочий стол
+          </button>
+          <button type="button" onClick={() => void setAllLayers(1)}>
+            Поверх всех
+          </button>
+          <button type="button" onClick={() => void resetAll()}>
+            Сбросить позиции
+          </button>
+        </div>
 
         <div className="settings__foot">Изменения сохраняются автоматически</div>
       </aside>

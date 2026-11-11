@@ -37,6 +37,11 @@ body {
   backdrop-filter: blur(16px);
 }
 
+.widget.is-locked,
+.widget.is-locked * {
+  -webkit-app-region: no-drag;
+}
+
 .widget--placeholder {
   align-items: center;
   justify-content: center;

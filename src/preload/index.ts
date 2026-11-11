@@ -13,7 +13,9 @@ import type {
   WeatherProvider,
   WeatherResult,
   WeatherUnits,
-  WidgetId
+  WidgetId,
+  WindowLayer,
+  WindowTarget
 } from '../shared/types'
 
 function subscribe<T>(channel: string, listener: (payload: T) => void): () => void {
@@ -37,6 +39,15 @@ const api = {
     subscribe('settings:changed', listener),
   onSettingsTab: (listener: (tab: WidgetId) => void): (() => void) =>
     subscribe('settings:tab', listener),
+  setWindowLock: (target: WindowTarget, locked: boolean): Promise<boolean> =>
+    ipcRenderer.invoke('window:setLock', target, locked),
+  setWindowLayer: (target: WindowTarget, layer: WindowLayer): Promise<boolean> =>
+    ipcRenderer.invoke('window:setLayer', target, layer),
+  resetWindowPosition: (target: WindowTarget): Promise<boolean> =>
+    ipcRenderer.invoke('window:resetPosition', target),
+  lockAll: (locked: boolean): Promise<boolean> => ipcRenderer.invoke('windows:lockAll', locked),
+  layerAll: (layer: WindowLayer): Promise<boolean> => ipcRenderer.invoke('windows:layerAll', layer),
+  resetAllPositions: (): Promise<boolean> => ipcRenderer.invoke('windows:resetAll'),
   getDisplays: (): Promise<
     Array<{ id: number; label: string; width: number; height: number; x: number; y: number }>
   > => ipcRenderer.invoke('app:displays'),

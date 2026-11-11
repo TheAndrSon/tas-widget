@@ -7,7 +7,9 @@ import type {
   WeatherInstancePatch,
   WeatherProvider,
   WeatherUnits,
-  WidgetId
+  WidgetId,
+  WindowLayer,
+  WindowTarget
 } from '../shared/types'
 import { WIDGET_IDS } from '../shared/widgets'
 import type { MusicService } from './music'
@@ -76,6 +78,51 @@ export function registerIpc({ store, manager, monitor, music, weather }: Deps): 
       )
     }
   )
+
+  ipcMain.handle('window:setLock', (_event, target: unknown, locked: unknown) => {
+    if (!target || typeof target !== 'object') return false
+    store.setWindowLocked(target as WindowTarget, Boolean(locked))
+    manager.broadcast('settings:changed', store.state)
+    return true
+  })
+
+  ipcMain.handle('window:setLayer', (_event, target: unknown, layer: unknown) => {
+    if (!target || typeof target !== 'object') return false
+    const safe = Number(layer)
+    if (safe !== 0 && safe !== 1 && safe !== 2 && safe !== 3) return false
+    store.setWindowLayer(target as WindowTarget, safe as WindowLayer)
+    manager.applyLayer(target as WindowTarget)
+    manager.broadcast('settings:changed', store.state)
+    return true
+  })
+
+  ipcMain.handle('window:resetPosition', (_event, target: unknown) => {
+    if (!target || typeof target !== 'object') return false
+    manager.resetWindowPosition(target as WindowTarget)
+    manager.broadcast('settings:changed', store.state)
+    return true
+  })
+
+  ipcMain.handle('windows:lockAll', (_event, locked: unknown) => {
+    store.setAllLocked(Boolean(locked))
+    manager.broadcast('settings:changed', store.state)
+    return true
+  })
+
+  ipcMain.handle('windows:layerAll', (_event, layer: unknown) => {
+    const safe = Number(layer)
+    if (safe !== 0 && safe !== 1 && safe !== 2 && safe !== 3) return false
+    store.setAllLayers(safe as WindowLayer)
+    manager.reorderWindows()
+    manager.broadcast('settings:changed', store.state)
+    return true
+  })
+
+  ipcMain.handle('windows:resetAll', () => {
+    manager.resetAllPositions()
+    manager.broadcast('settings:changed', store.state)
+    return true
+  })
 
   ipcMain.handle('app:displays', () =>
     screen.getAllDisplays().map(display => ({

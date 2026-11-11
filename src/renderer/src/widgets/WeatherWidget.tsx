@@ -193,10 +193,11 @@ export function WeatherWidget({ instanceId }: { instanceId: string }): ReactElem
     event.preventDefault()
     void window.api.showContextMenu()
   }
+  const rootClass = `widget weather${instance?.locked ? ' is-locked' : ''}`
 
   if (!instance || !settings) {
     return (
-      <div className="widget weather" onContextMenu={onContextMenu}>
+      <div className={rootClass} onContextMenu={onContextMenu}>
         <div className="wx wx--empty">
           <div className="wx__empty-title">Город не найден</div>
           <div className="wx__empty-hint">Удалён из настроек</div>
@@ -216,7 +217,7 @@ export function WeatherWidget({ instanceId }: { instanceId: string }): ReactElem
 
   if (!data) {
     return (
-      <div className="widget weather" onContextMenu={onContextMenu}>
+      <div className={rootClass} onContextMenu={onContextMenu}>
         {effects}
         <div className="wx wx--empty">
           <div className="wx__empty-title">
@@ -232,7 +233,7 @@ export function WeatherWidget({ instanceId }: { instanceId: string }): ReactElem
   const forecast = data.daily.slice(1, 1 + settings.forecastDays)
 
   return (
-    <div className="widget weather" onContextMenu={onContextMenu}>
+    <div className={rootClass} onContextMenu={onContextMenu}>
       {effects}
 
       <div className="wx">

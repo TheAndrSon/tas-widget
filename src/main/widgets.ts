@@ -1,7 +1,13 @@
 import { BrowserWindow, screen } from 'electron'
 import type { Display, Rectangle, WebContents } from 'electron'
 import { join } from 'node:path'
-import type { EqualizerInstance, WeatherInstance, WidgetId } from '../shared/types'
+import type {
+  EqualizerInstance,
+  WeatherInstance,
+  WidgetId,
+  WindowLayer,
+  WindowTarget
+} from '../shared/types'
 import { WIDGET_IDS, WIDGETS } from '../shared/widgets'
 import type { Store } from './store'
 
@@ -137,6 +143,7 @@ export class WidgetManager {
 
     this.wins.set(id, win)
     this.store.setEnabled(id, true)
+    this.applyLayer({ type: id })
     this.hooks.onOpen?.(id)
     return win
   }
@@ -170,6 +177,7 @@ export class WidgetManager {
     })
 
     win.on('moved', () => {
+      if (this.applyingBounds.has(key)) return
       const [x, y] = win.getPosition()
       const timer = this.timers.get(key)
       if (timer) clearTimeout(timer)
@@ -189,6 +197,7 @@ export class WidgetManager {
 
     this.weatherWins.set(instance.id, win)
     this.store.setWeatherEnabled(instance.id, true)
+    this.applyLayer({ type: 'weather', instanceId: instance.id })
     return win
   }
 
@@ -259,7 +268,118 @@ export class WidgetManager {
 
     this.equalizerWins.set(instance.id, win)
     this.store.setEqualizerEnabled(instance.id, true)
+    this.applyLayer({ type: 'equalizer', instanceId: instance.id })
     return win
+  }
+
+  applyLayer(target: WindowTarget): void {
+    const win = this.windowFor(target)
+    if (!win || win.isDestroyed()) return
+    const layer = this.layerFor(target)
+    if (layer === 0) win.setAlwaysOnTop(false)
+    else {
+      win.setAlwaysOnTop(true, 'floating')
+      win.moveTop()
+    }
+    this.reorderWindows()
+  }
+
+  reorderWindows(): void {
+    const items: Array<{ win: BrowserWindow; layer: WindowLayer }> = []
+    const push = (win: BrowserWindow, layer: WindowLayer): void => {
+      if (!win.isDestroyed()) items.push({ win, layer })
+    }
+    for (const [id, win] of this.wins) push(win, this.store.state.widgets[id].layer)
+    for (const [id, win] of this.weatherWins) {
+      const instance = this.store.weatherById(id)
+      push(win, instance?.layer ?? 1)
+    }
+    for (const [id, win] of this.equalizerWins) {
+      const instance = this.store.equalizerById(id)
+      push(win, instance?.layer ?? 1)
+    }
+    items.sort((a, b) => a.layer - b.layer)
+    for (const item of items) {
+      if (item.layer === 0) item.win.setAlwaysOnTop(false)
+      else {
+        item.win.setAlwaysOnTop(true, 'floating')
+        item.win.moveTop()
+      }
+    }
+  }
+
+  resetWindowPosition(target: WindowTarget): void {
+    const win = this.windowFor(target)
+    if (!win || win.isDestroyed()) {
+      this.store.resetPlacement(target)
+      return
+    }
+    const bounds = win.getBounds()
+    let position: { x: number; y: number }
+    if (target.type === 'weather') {
+      position = this.defaultPosition('weather')
+    } else if (target.type === 'equalizer') {
+      position = this.defaultEqualizerPosition(bounds.width, bounds.height)
+    } else {
+      position = this.defaultPosition(target.type)
+    }
+    const displayId =
+      target.type === 'equalizer' && target.instanceId
+        ? (this.store.equalizerById(target.instanceId)?.settings.displayId ?? null)
+        : null
+    const wa = this.displayFor(displayId, bounds).workArea
+    position.x = Math.min(Math.max(position.x, wa.x), wa.x + wa.width - bounds.width)
+    position.y = Math.min(Math.max(position.y, wa.y), wa.y + wa.height - bounds.height)
+    const key = this.keyFor(target)
+    this.applyingBounds.add(key)
+    win.setBounds({ x: position.x, y: position.y, width: bounds.width, height: bounds.height })
+    this.applyingBounds.delete(key)
+    if (target.type === 'weather' && target.instanceId) {
+      this.store.setWeatherPlacement(target.instanceId, position.x, position.y)
+    } else if (target.type === 'equalizer' && target.instanceId) {
+      this.store.setEqualizerPlacement(target.instanceId, position.x, position.y)
+    } else if (target.type !== 'weather' && target.type !== 'equalizer') {
+      this.store.setPlacement(target.type, position.x, position.y)
+    }
+  }
+
+  resetAllPositions(): void {
+    for (const id of WIDGET_IDS) {
+      if (id === 'weather' || id === 'equalizer') continue
+      this.resetWindowPosition({ type: id })
+    }
+    for (const instance of this.store.state.weather.instances) {
+      this.resetWindowPosition({ type: 'weather', instanceId: instance.id })
+    }
+    for (const instance of this.store.state.equalizer.instances) {
+      this.resetWindowPosition({ type: 'equalizer', instanceId: instance.id })
+    }
+    this.reorderWindows()
+  }
+
+  private keyFor(target: WindowTarget): string {
+    if (target.instanceId) return `${target.type}:${target.instanceId}`
+    return target.type
+  }
+
+  private windowFor(target: WindowTarget): BrowserWindow | null {
+    if (target.type === 'weather' && target.instanceId) {
+      return this.weatherWins.get(target.instanceId) ?? null
+    }
+    if (target.type === 'equalizer' && target.instanceId) {
+      return this.equalizerWins.get(target.instanceId) ?? null
+    }
+    return this.wins.get(target.type) ?? null
+  }
+
+  private layerFor(target: WindowTarget): WindowLayer {
+    if (target.type === 'weather' && target.instanceId) {
+      return this.store.weatherById(target.instanceId)?.layer ?? 1
+    }
+    if (target.type === 'equalizer' && target.instanceId) {
+      return this.store.equalizerById(target.instanceId)?.layer ?? 1
+    }
+    return this.store.state.widgets[target.type].layer
   }
 
   close(id: WidgetId): void {
@@ -419,14 +539,12 @@ export class WidgetManager {
       }
     }
 
+    const order: WidgetId[] = ['system', 'music', 'plumbob']
     let offset = MARGIN
-    for (const [otherId, win] of this.wins) {
-      if (win.isDestroyed()) continue
+    for (const otherId of order) {
+      if (otherId === id) break
+      if (!this.isOpen(otherId)) continue
       offset += WIDGETS[otherId].height + GAP
-    }
-    for (const win of this.weatherWins.values()) {
-      if (win.isDestroyed()) continue
-      offset += WIDGETS.weather.height + GAP
     }
     return {
       x: area.x + area.width - meta.width - MARGIN,

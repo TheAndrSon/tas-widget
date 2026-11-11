@@ -20,7 +20,9 @@ import type {
   WeatherInstance,
   WeatherInstancePatch,
   WeatherSettings,
-  WidgetId
+  WidgetId,
+  WindowLayer,
+  WindowTarget
 } from '../shared/types'
 import { normalizeVisualizer } from '../shared/visualizer'
 import { WIDGET_IDS } from '../shared/widgets'
@@ -130,6 +132,8 @@ function normalizeEqualizer(
             Math.max(90, Math.round(Number(item.height ?? DEFAULT_EQUALIZER_HEIGHT)))
           ),
           enabled: typeof item.enabled === 'boolean' ? item.enabled : false,
+          locked: typeof item.locked === 'boolean' ? item.locked : false,
+          layer: item.layer === 0 || item.layer === 2 || item.layer === 3 ? item.layer : 1,
           settings: normalizeEqualizerSettings(item.settings)
         }
       ]
@@ -145,6 +149,8 @@ function normalizeEqualizer(
         width: DEFAULT_EQUALIZER_WIDTH,
         height: DEFAULT_EQUALIZER_HEIGHT,
         enabled: typeof legacyPlacement?.enabled === 'boolean' ? legacyPlacement.enabled : false,
+        locked: typeof legacyPlacement?.locked === 'boolean' ? legacyPlacement.locked : false,
+        layer: legacyPlacement?.layer ?? 1,
         settings: normalizeEqualizerSettings(source)
       }
     ]
@@ -180,6 +186,8 @@ function normalizeWeather(
           x: typeof item.x === 'number' ? item.x : null,
           y: typeof item.y === 'number' ? item.y : null,
           enabled: typeof item.enabled === 'boolean' ? item.enabled : false,
+          locked: typeof item.locked === 'boolean' ? item.locked : false,
+          layer: item.layer === 0 || item.layer === 2 || item.layer === 3 ? item.layer : 1,
           settings: normalizeWeatherSettings(item.settings)
         }
       ]
@@ -196,6 +204,8 @@ function normalizeWeather(
         x: typeof legacyPlacement?.x === 'number' ? legacyPlacement.x : null,
         y: typeof legacyPlacement?.y === 'number' ? legacyPlacement.y : null,
         enabled: typeof legacyPlacement?.enabled === 'boolean' ? legacyPlacement.enabled : false,
+        locked: typeof legacyPlacement?.locked === 'boolean' ? legacyPlacement.locked : false,
+        layer: legacyPlacement?.layer ?? 1,
         settings: normalizeWeatherSettings(source)
       }
     ]
@@ -214,7 +224,9 @@ function normalize(raw: unknown): AppSettings {
     state.widgets[id] = {
       x: typeof item.x === 'number' ? item.x : null,
       y: typeof item.y === 'number' ? item.y : null,
-      enabled: typeof item.enabled === 'boolean' ? item.enabled : false
+      enabled: typeof item.enabled === 'boolean' ? item.enabled : false,
+      locked: typeof item.locked === 'boolean' ? item.locked : false,
+      layer: item.layer === 0 || item.layer === 2 || item.layer === 3 ? item.layer : 1
     }
   }
 
@@ -277,6 +289,68 @@ export class Store {
     this.scheduleSave()
   }
 
+  setWindowLocked(target: WindowTarget, locked: boolean): void {
+    if (target.type === 'weather' && target.instanceId) {
+      const instance = this.weatherById(target.instanceId)
+      if (instance) instance.locked = locked
+    } else if (target.type === 'equalizer' && target.instanceId) {
+      const instance = this.equalizerById(target.instanceId)
+      if (instance) instance.locked = locked
+    } else if (target.type !== 'weather' && target.type !== 'equalizer') {
+      this.state.widgets[target.type].locked = locked
+    }
+    this.scheduleSave()
+  }
+
+  setWindowLayer(target: WindowTarget, layer: WindowLayer): void {
+    const safe: WindowLayer = layer === 0 || layer === 2 || layer === 3 ? layer : 1
+    if (target.type === 'weather' && target.instanceId) {
+      const instance = this.weatherById(target.instanceId)
+      if (instance) instance.layer = safe
+    } else if (target.type === 'equalizer' && target.instanceId) {
+      const instance = this.equalizerById(target.instanceId)
+      if (instance) instance.layer = safe
+    } else if (target.type !== 'weather' && target.type !== 'equalizer') {
+      this.state.widgets[target.type].layer = safe
+    }
+    this.scheduleSave()
+  }
+
+  setAllLocked(locked: boolean): void {
+    for (const id of WIDGET_IDS) this.state.widgets[id].locked = locked
+    for (const instance of this.state.weather.instances) instance.locked = locked
+    for (const instance of this.state.equalizer.instances) instance.locked = locked
+    this.scheduleSave()
+  }
+
+  resetPlacement(target: WindowTarget): void {
+    if (target.type === 'weather' && target.instanceId) {
+      const instance = this.weatherById(target.instanceId)
+      if (instance) {
+        instance.x = null
+        instance.y = null
+      }
+    } else if (target.type === 'equalizer' && target.instanceId) {
+      const instance = this.equalizerById(target.instanceId)
+      if (instance) {
+        instance.x = null
+        instance.y = null
+      }
+    } else if (target.type !== 'weather' && target.type !== 'equalizer') {
+      this.state.widgets[target.type].x = null
+      this.state.widgets[target.type].y = null
+    }
+    this.scheduleSave()
+  }
+
+  setAllLayers(layer: WindowLayer): void {
+    const safe: WindowLayer = layer === 0 || layer === 2 || layer === 3 ? layer : 1
+    for (const id of WIDGET_IDS) this.state.widgets[id].layer = safe
+    for (const instance of this.state.weather.instances) instance.layer = safe
+    for (const instance of this.state.equalizer.instances) instance.layer = safe
+    this.scheduleSave()
+  }
+
   weatherById(id: string): WeatherInstance | undefined {
     return this.state.weather.instances.find(instance => instance.id === id)
   }
@@ -295,6 +369,8 @@ export class Store {
       x: null,
       y: null,
       enabled: true,
+      locked: false,
+      layer: 1,
       settings: base ? structuredClone(base) : defaultWeatherSettings()
     }
     instances.push(instance)
@@ -355,6 +431,8 @@ export class Store {
       width: DEFAULT_EQUALIZER_WIDTH,
       height: DEFAULT_EQUALIZER_HEIGHT,
       enabled: true,
+      locked: false,
+      layer: 1,
       settings: base ? structuredClone(base) : defaultEqualizerSettings()
     }
     instances.push(instance)
