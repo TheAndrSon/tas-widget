@@ -86,7 +86,7 @@ export function Visualizer({
       last = now
       const s = settingsRef.current
       const [r1, g1, b1] = hexToRgb(s.color1)
-      const [r2, g2, b2] = hexToRgb(s.color2)
+      const [r2, g2, b2] = s.twoColors ? hexToRgb(s.color2) : [r1, g1, b1]
       const time = now / 1000
       const count = s.bars
       const maxHeight = s.maxHeight / 100
@@ -108,19 +108,41 @@ export function Visualizer({
           0.3 * Math.abs(Math.sin(time * 2.1 + source * 0.55)) +
           0.22 * Math.abs(Math.sin(time * 5.3 + source * 0.21)) +
           0.16 * Math.abs(Math.sin(time * 0.7 + source * 1.3))
-        const target = spectrum ? Math.max(Math.min(1, real), 0.015) : synthetic
+        // Мягкий лимитер: громкие всплески не упираются в потолок.
+        const target = spectrum ? Math.max(0.015, 1 - Math.exp(-real * 1.4)) : synthetic
         levels[index] += (target - levels[index]) * (spectrum ? 0.42 : 0.2)
         energy += levels[index]
       }
       energy /= Math.max(1, count)
 
+      if (spectrum && s.spectrumSmoothing > 0) {
+        const source = levels.slice()
+        for (let index = 0; index < count; index += 1) {
+          const prev = source[Math.max(0, index - 1)]
+          const next = source[Math.min(count - 1, index + 1)]
+          const average = (prev + source[index] + next) / 3
+          levels[index] = source[index] + (average - source[index]) * s.spectrumSmoothing
+        }
+      }
+
       const mirrorV = s.reflection === 'vertical' || s.reflection === 'both'
       const mirrorH = s.reflection === 'horizontal' || s.reflection === 'both'
 
-      // Без звука эквалайзер превращается в тонкую линию, а не живёт синтетикой.
+      // Без звука эквалайзер показывает контур выбранной визуализации.
       if (flatWhenIdle && (!spectrum || energy < 0.02)) {
-        context.fillStyle = rgba([r1, g1, b1], 0.5)
-        context.fillRect(0, Math.max(0, Math.min(height - 1, Math.round(height * 0.5))), width, 1)
+        context.strokeStyle = rgba([r1, g1, b1], 0.5)
+        context.lineWidth = 1
+        if (s.mode === 'radial') {
+          const radius = Math.max(2, Math.min(width, height) * (s.radialRadius || 0.16))
+          context.beginPath()
+          context.arc(width / 2, height / 2, radius, 0, Math.PI * 2)
+          context.stroke()
+        } else {
+          context.beginPath()
+          context.moveTo(0, Math.round(height * 0.5) + 0.5)
+          context.lineTo(width, Math.round(height * 0.5) + 0.5)
+          context.stroke()
+        }
         frame = requestAnimationFrame(draw)
         return
       }
@@ -130,11 +152,6 @@ export function Visualizer({
       context.rotate((s.rotation * Math.PI) / 180)
       context.scale(s.mirrorX ? -1 : 1, s.mirrorY ? -1 : 1)
       context.translate(-width / 2, -height / 2)
-
-      if (s.glowEnabled && (s.mode !== 'bars' || count <= 800)) {
-        context.shadowColor = rgba([r1, g1, b1], s.glowIntensity)
-        context.shadowBlur = s.glowSpread
-      }
 
       if (s.mode === 'bars') {
         const step = s.barThickness + s.barGap
@@ -177,7 +194,9 @@ export function Visualizer({
         const cx = width / 2
         const cy = height / 2
         const base = Math.min(width, height) * (s.radialRadius || 0.16)
-        const length = Math.min(width, height) * (s.radialLength || 0.34) * maxHeight
+        const maxLength =
+          Math.max(2, Math.hypot(width / 2, height / 2) - base) *
+          (Math.min(100, Math.max(20, s.radialMaxHeight ?? 100)) / 100)
         const spike = Math.max(1, s.barThickness * 0.55)
 
         context.strokeStyle = rgba([r1, g1, b1], 0.22)
@@ -186,12 +205,7 @@ export function Visualizer({
         context.arc(cx, cy, base, 0, Math.PI * 2)
         context.stroke()
 
-        for (let index = 0; index < count; index += 1) {
-          const angle = s.radialHalf
-            ? (index / count) * Math.PI - Math.PI / 2
-            : (index / count) * Math.PI * 2 - Math.PI / 2
-          const value = levels[index] ?? 0
-          const len = Math.max(2, length * Math.min(1, value * intensity * 1.45))
+        const drawRay = (angle: number, len: number): void => {
           const gradient = context.createLinearGradient(
             cx + Math.cos(angle) * base,
             cy + Math.sin(angle) * base,
@@ -206,16 +220,20 @@ export function Visualizer({
           context.beginPath()
           context.moveTo(cx + Math.cos(angle) * base, cy + Math.sin(angle) * base)
           context.lineTo(cx + Math.cos(angle) * (base + len), cy + Math.sin(angle) * (base + len))
-          if (mirrorV) {
-            const mx = s.mirrorOffsetX
-            const my = s.mirrorOffsetY
-            context.moveTo(cx - Math.cos(angle) * base + mx, cy - Math.sin(angle) * base + my)
-            context.lineTo(
-              cx - Math.cos(angle) * (base + len) + mx,
-              cy - Math.sin(angle) * (base + len) + my
-            )
-          }
           context.stroke()
+        }
+
+        for (let index = 0; index < count; index += 1) {
+          const angle = s.radialHalf
+            ? (index / count) * Math.PI - Math.PI / 2
+            : (index / count) * Math.PI * 2 - Math.PI / 2
+          const value = levels[index] ?? 0
+          const len = Math.max(1, maxLength * Math.min(1, value * intensity * 1.45))
+          drawRay(angle, len)
+          if (mirrorV) {
+            // Зеркало по вертикальной оси: x меняется, y остаётся тем же.
+            drawRay(Math.PI - angle, len)
+          }
         }
       } else if (s.mode === 'line') {
         const axisY = height * s.axis
@@ -296,10 +314,6 @@ export function Visualizer({
           context.stroke()
         }
 
-        if (s.glowEnabled) {
-          context.shadowColor = rgba([r1, g1, b1], s.glowIntensity)
-          context.shadowBlur = s.glowSpread
-        }
         drawShape()
         if (mirrorV) {
           context.save()
@@ -309,7 +323,6 @@ export function Visualizer({
           drawShape()
           context.restore()
         }
-        context.shadowBlur = 0
       } else if (s.mode === 'dots') {
         const cell = s.dotSize + s.barGap
         const columns = Math.max(1, Math.min(count, Math.floor(width / Math.max(2, cell))))
@@ -377,10 +390,6 @@ export function Visualizer({
           particles = particles.slice(-s.particleCount)
         }
 
-        if (s.glowEnabled) {
-          context.shadowColor = rgba([r1, g1, b1], s.glowIntensity)
-          context.shadowBlur = s.glowSpread
-        }
         for (const particle of particles) {
           particle.x += particle.vx * delta * speed
           particle.y += particle.vy * delta * speed
@@ -419,8 +428,8 @@ export function Visualizer({
         if (Math.random() < spawnChance) {
           const variability = Math.max(0, Math.min(1, s.particleSizeVariability))
           const variation = 1 + (Math.random() * 2 - 1) * variability
-          const x = cx + (Math.random() - 0.5) * width * (s.particleMaskWidth ?? 0.2)
-          const y = cy + (Math.random() - 0.5) * height * (s.particleMaskHeight ?? 0.2)
+          const x = cx + (Math.random() - 0.5) * width * (s.particleMaskWidth ?? 0.6)
+          const y = cy + (Math.random() - 0.5) * height * (s.particleMaskHeight ?? 0.6)
           const dx = x - cx
           const dy = y - cy
           const distance = Math.hypot(dx, dy)
@@ -432,15 +441,11 @@ export function Visualizer({
             vy: Math.sin(angle) * (30 + Math.random() * 80),
             life: 1 + Math.random() * 1.6,
             size: Math.max(0.4, s.sparkSize * variation * 0.4),
-            growth: s.sparkSize * (0.5 + Math.random() * 1.5) * Math.max(0.2, variation)
+            growth: 0
           })
           particles = particles.slice(-s.particleCount)
         }
 
-        if (s.glowEnabled) {
-          context.shadowColor = rgba([r1, g1, b1], s.glowIntensity)
-          context.shadowBlur = s.glowSpread
-        }
         for (const particle of particles) {
           particle.x += particle.vx * delta * speed
           particle.y += particle.vy * delta * speed
@@ -496,10 +501,6 @@ export function Visualizer({
 
         context.strokeStyle = rgba([r2, g2, b2], 0.85)
         context.lineWidth = s.waveThickness
-        if (s.glowEnabled) {
-          context.shadowColor = rgba([r2, g2, b2], s.glowIntensity)
-          context.shadowBlur = s.glowSpread
-        }
         context.beginPath()
         context.arc(cx, cy, base * pulse, 0, Math.PI * 2)
         context.stroke()

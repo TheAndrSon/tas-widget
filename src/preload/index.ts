@@ -131,6 +131,10 @@ const api: WidgetApi = {
     ipcRenderer.invoke('equalizer:align', id, edge) as Promise<void>,
   setEqualizerStretch: (id: string, stretch: boolean) =>
     ipcRenderer.invoke('equalizer:stretch', id, stretch) as Promise<PersistedState>,
+  setEqualizerPosition: (id: string, x: number, y: number) =>
+    ipcRenderer.invoke('equalizer:position', id, x, y) as Promise<PersistedState>,
+  resetEqualizerPosition: (id: string) =>
+    ipcRenderer.invoke('equalizer:reset-position', id) as Promise<PersistedState>,
 
   onSelectTab: (callback) => subscribe<SettingsTab>('settings:select', callback),
   onSettingsFocus: (callback) => subscribe<string | null>('settings:focus', callback),

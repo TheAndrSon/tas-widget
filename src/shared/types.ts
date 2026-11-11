@@ -234,10 +234,16 @@ export interface VisualizerSettings {
   spectrumOpacity: number
   /** использовать половину спектра и отразить её */
   halfSpectrum: boolean
+  /** усреднение соседних частот: 0 — без сглаживания, 1 — максимум */
+  spectrumSmoothing: number
+  /** один цвет (color1) или два (color1 + color2) */
+  twoColors: boolean
   /** радиус центральной окружности радиального режима, доля меньшей стороны */
   radialRadius: number
   /** длина лучей радиального режима, доля меньшей стороны */
   radialLength: number
+  /** предельная высота лучей радиального режима, 100% — до дальней границы окна */
+  radialMaxHeight: number
   radialHalf: boolean
   waveCount: number
   waveSpeed: number
@@ -245,9 +251,6 @@ export interface VisualizerSettings {
   waveLife: number
   waveIntensity: number
   waveRadius: number
-  glowEnabled: boolean
-  glowIntensity: number
-  glowSpread: number
   mirrorOffsetX: number
   mirrorOffsetY: number
   /** устаревшие поля старых режимов, оставлены для миграции */
@@ -954,6 +957,8 @@ export interface WidgetApi {
   closeSimsRewards(): void
   alignEqualizer(id: string, edge: 'top' | 'bottom' | 'left' | 'right'): Promise<void>
   setEqualizerStretch(id: string, stretch: boolean): Promise<PersistedState>
+  setEqualizerPosition(id: string, x: number, y: number): Promise<PersistedState>
+  resetEqualizerPosition(id: string): Promise<PersistedState>
 
   onSelectTab(cb: (tab: SettingsTab) => void): () => void
   onSettingsFocus(cb: (id: string | null) => void): () => void

@@ -91,10 +91,13 @@ function VisualizerControls({
 }): JSX.Element {
   const set = (patch: Partial<VisualizerSettings>): void => onChange({ ...value, ...patch })
   const mode = value.mode
-  const spectrum = ['bars', 'radial', 'line', 'waveform', 'dots'].includes(mode)
+  const spectrum = ['bars', 'radial', 'line', 'waveform', 'dots', 'particles', 'face'].includes(
+    mode
+  )
 
   return (
     <>
+      <div className="control-group__title">Внешний вид</div>
       <Row label="Визуализация" hint="Фон или обводка, реагирующие на звук">
         <Segmented
           value={mode}
@@ -127,24 +130,35 @@ function VisualizerControls({
             />
           </Row>
 
-          {value.palette === 'custom' && (
-            <Row label="Цвета" hint="Низ и верх градиента">
-              <div className="color-pair">
-                <input
-                  type="color"
-                  className="color-input"
-                  value={value.color1}
-                  onChange={(event) => set({ color1: event.target.value })}
-                />
+          <Row label="Количество цветов" hint="Один цвет или градиент из двух">
+            <Segmented
+              value={value.twoColors ? 'two' : 'one'}
+              options={[
+                { value: 'one', label: 'Один' },
+                { value: 'two', label: 'Два' }
+              ]}
+              onChange={(next) => set({ twoColors: next === 'two' })}
+            />
+          </Row>
+
+          <Row label="Цвета" hint="Низ и верх градиента">
+            <div className="color-pair">
+              <input
+                type="color"
+                className="color-input"
+                value={value.color1}
+                onChange={(event) => set({ color1: event.target.value })}
+              />
+              {value.twoColors && (
                 <input
                   type="color"
                   className="color-input"
                   value={value.color2}
                   onChange={(event) => set({ color2: event.target.value })}
                 />
-              </div>
-            </Row>
-          )}
+              )}
+            </div>
+          </Row>
 
           <Row label="Интенсивность">
             <Slider
@@ -169,6 +183,9 @@ function VisualizerControls({
           </Row>
 
           {['bars', 'radial', 'line', 'waveform', 'dots'].includes(mode) && (
+            <div className="control-group__title">Форма и спектр</div>
+          )}
+          {['bars', 'radial', 'line', 'waveform', 'dots'].includes(mode) && (
             <Row label="Количество" hint="12–3600 элементов">
               <NumberSlider
                 min={12}
@@ -176,6 +193,21 @@ function VisualizerControls({
                 step={1}
                 value={value.bars}
                 onChange={(bars) => set({ bars })}
+              />
+            </Row>
+          )}
+
+          {spectrum && (
+            <Row
+              label="Сглаживание спектра"
+              hint="Усредняет соседние частоты, чтобы столбики не дёргались"
+            >
+              <NumberSlider
+                min={0}
+                max={1}
+                step={0.01}
+                value={value.spectrumSmoothing}
+                onChange={(spectrumSmoothing) => set({ spectrumSmoothing })}
               />
             </Row>
           )}
@@ -244,6 +276,7 @@ function VisualizerControls({
 
           {mode === 'particles' && (
             <>
+              <div className="control-group__title">Частицы</div>
               <Row label="Источник частиц">
                 <Segmented
                   value={value.particleOrigin}
@@ -257,7 +290,7 @@ function VisualizerControls({
               <Row label="Количество частиц">
                 <Slider
                   min={20}
-                  max={1200}
+                  max={5000}
                   step={10}
                   value={value.particleCount}
                   onChange={(particleCount) => set({ particleCount })}
@@ -315,6 +348,7 @@ function VisualizerControls({
 
           {mode === 'face' && (
             <>
+              <div className="control-group__title">Частицы в лицо</div>
               <Row label="Размер частиц">
                 <NumberSlider
                   min={0.5}
@@ -336,7 +370,7 @@ function VisualizerControls({
               <Row label="Количество частиц">
                 <NumberSlider
                   min={20}
-                  max={1200}
+                  max={5000}
                   step={10}
                   value={value.particleCount}
                   onChange={(particleCount) => set({ particleCount })}
@@ -345,7 +379,7 @@ function VisualizerControls({
               <Row label="Ширина маски" hint="Зона вылета частиц по центру, доля ширины">
                 <NumberSlider
                   min={0}
-                  max={0.9}
+                  max={1}
                   step={0.01}
                   value={value.particleMaskWidth}
                   onChange={(particleMaskWidth) => set({ particleMaskWidth })}
@@ -354,7 +388,7 @@ function VisualizerControls({
               <Row label="Высота маски" hint="Зона вылета частиц по центру, доля высоты">
                 <NumberSlider
                   min={0}
-                  max={0.9}
+                  max={1}
                   step={0.01}
                   value={value.particleMaskHeight}
                   onChange={(particleMaskHeight) => set({ particleMaskHeight })}
@@ -393,6 +427,9 @@ function VisualizerControls({
             </>
           )}
 
+          {['bars', 'dots', 'particles', 'face', 'line', 'waveform', 'radial'].includes(mode) && (
+            <div className="control-group__title">Отражение</div>
+          )}
           {['bars', 'dots', 'particles', 'face', 'line', 'waveform', 'radial'].includes(mode) && (
             <Row
               label="Отражение"
@@ -447,13 +484,14 @@ function VisualizerControls({
                   onChange={(radialRadius) => set({ radialRadius })}
                 />
               </Row>
-              <Row label="Длина лучей">
+              <Row label="Предельная высота" hint="100% — лучи доходят до дальней границы окна">
                 <NumberSlider
-                  min={0.05}
-                  max={1}
-                  step={0.01}
-                  value={value.radialLength}
-                  onChange={(radialLength) => set({ radialLength })}
+                  min={20}
+                  max={100}
+                  step={1}
+                  value={value.radialMaxHeight}
+                  onChange={(radialMaxHeight) => set({ radialMaxHeight })}
+                  unit="%"
                 />
               </Row>
             </>
@@ -482,37 +520,9 @@ function VisualizerControls({
             </>
           )}
 
-          <Row label="Свечение визуализации">
-            <Toggle checked={value.glowEnabled} onChange={(glowEnabled) => set({ glowEnabled })} />
-          </Row>
-
-          {value.glowEnabled && (
-            <>
-              <Row label="Интенсивность свечения">
-                <Slider
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={value.glowIntensity}
-                  onChange={(glowIntensity) => set({ glowIntensity })}
-                  format={(item) => `${Math.round(item * 100)}%`}
-                />
-              </Row>
-              <Row label="Рассеивание свечения">
-                <Slider
-                  min={0}
-                  max={60}
-                  step={1}
-                  value={value.glowSpread}
-                  onChange={(glowSpread) => set({ glowSpread })}
-                  format={(item) => `${item}px`}
-                />
-              </Row>
-            </>
-          )}
-
           {spectrum && (
             <>
+              <div className="control-group__title">Частоты</div>
               <Row label="Частоты" hint="Нижняя граница анализа, Гц">
                 <NumberSlider
                   min={20}
@@ -547,6 +557,18 @@ function VisualizerControls({
                   ]}
                   onChange={(freqScale) => set({ freqScale })}
                 />
+              </Row>
+              <Row
+                label="Диапазон по умолчанию"
+                hint="20 Гц — 20 кГц: в визуализацию попадает весь спектр песни"
+              >
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  onClick={() => set({ freqMin: 20, freqMax: 20000, freqScale: 'log' })}
+                >
+                  Сбросить частоты
+                </button>
               </Row>
             </>
           )}
@@ -1593,18 +1615,41 @@ function DicePanel({ instance, patchSettings }: PanelProps): JSX.Element {
 
 function EqualizerPanel({ instance, patchSettings }: PanelProps): JSX.Element {
   const eq = instance.settings as EqualizerSettings
-  const mode = eq.visualizer.mode
-  const particles = mode === 'particles' || mode === 'face'
+  const [displays, setDisplays] = useState<RuntimeInfo['displays']>([])
+  useEffect(() => {
+    window.widgets
+      .getRuntime()
+      .then((runtime) => setDisplays(runtime.displays))
+      .catch(() => undefined)
+  }, [])
+  const display =
+    displays.find((item) => item.id === eq.displayId) ??
+    displays.find((item) => item.primary) ??
+    displays[0]
+  const base = instance.contentSize ?? { width: 320, height: 150 }
+  const scale = Math.min(8, Math.max(0.25, Number(eq.scale) || 1))
+  const width = eq.stretch && display ? display.workArea.width : Math.round(base.width * scale)
+  const height = eq.stretch && display ? display.workArea.height : Math.round(base.height * scale)
+  const minX = display ? display.workArea.x - Math.round(width * 0.9) : -6000
+  const maxX = display
+    ? display.workArea.x + display.workArea.width - Math.round(width * 0.1)
+    : 6000
+  const minY = display ? display.workArea.y - Math.round(height * 0.9) : -6000
+  const maxY = display
+    ? display.workArea.y + display.workArea.height - Math.round(height * 0.1)
+    : 6000
   return (
     <Section title="Эквалайзер" hint="визуализация текущей музыки">
+      <div className="control-group__title">Визуализация</div>
       <VisualizerControls
         value={eq.visualizer}
         onChange={(visualizer) => patchSettings({ visualizer })}
         allowedModes={['off', 'radial', 'particles', 'face']}
       />
+      <div className="control-group__title">Окно и положение</div>
       <Row
-        label="Настоящее увеличение"
-        hint="Растёт само окно и холст, без CSS-масштабирования — качество не теряется"
+        label="Масштаб визуализации"
+        hint="Визуализация и окно растут вместе, без CSS-зума и потери качества"
       >
         <NumberSlider
           min={0.25}
@@ -1625,17 +1670,51 @@ function EqualizerPanel({ instance, patchSettings }: PanelProps): JSX.Element {
           unit="%"
         />
       </Row>
-      {particles && (
-        <Row
-          label="Растянуть на весь монитор"
-          hint="Окно встаёт вплотную к краям выбранного дисплея"
+      <Row
+        label="Растянуть на весь монитор"
+        hint="Включает блокировку: клики проходят сквозь, положение меняется бегунками ниже"
+      >
+        <Toggle
+          checked={eq.stretch}
+          onChange={(stretch) => void window.widgets.setEqualizerStretch(instance.id, stretch)}
+        />
+      </Row>
+      <Row
+        label="Положение по X"
+        hint={`Допустимо за краем, на экране остаётся не меньше 1/10 окна`}
+      >
+        <NumberSlider
+          min={minX}
+          max={maxX}
+          step={1}
+          value={instance.position?.x ?? 0}
+          onChange={(x) =>
+            void window.widgets.setEqualizerPosition(instance.id, x, instance.position?.y ?? 0)
+          }
+          unit="px"
+        />
+      </Row>
+      <Row label="Положение по Y">
+        <NumberSlider
+          min={minY}
+          max={maxY}
+          step={1}
+          value={instance.position?.y ?? 0}
+          onChange={(y) =>
+            void window.widgets.setEqualizerPosition(instance.id, instance.position?.x ?? 0, y)
+          }
+          unit="px"
+        />
+      </Row>
+      <Row label="Положение" hint="Вернуть эквалайзер в стандартную точку">
+        <button
+          type="button"
+          className="btn btn--small"
+          onClick={() => void window.widgets.resetEqualizerPosition(instance.id)}
         >
-          <Toggle
-            checked={eq.stretch}
-            onChange={(stretch) => void window.widgets.setEqualizerStretch(instance.id, stretch)}
-          />
-        </Row>
-      )}
+          Сбросить положение
+        </button>
+      </Row>
       <div className="style-note">
         Данные берутся из системной медиа-сессии Windows — как у виджета музыки.
       </div>

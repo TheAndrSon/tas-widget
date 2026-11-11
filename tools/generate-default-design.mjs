@@ -71,6 +71,20 @@ function cleanSettings(type, inputSettings) {
   // Личные данные не должны попадать в публичные значения по умолчанию.
   if (type === 'weather') value.city = structuredClone(MOSCOW)
   if (type === 'astro') value.birthDate = ''
+  if (value.visualizer) {
+    // Полный слышимый диапазон и мягкий лимитер задаются в коде визуализатора.
+    value.visualizer.freqMin = 20
+    value.visualizer.freqMax = 20000
+    value.visualizer.freqScale = 'log'
+    value.visualizer.spectrumSmoothing = value.visualizer.spectrumSmoothing ?? 0.25
+    value.visualizer.twoColors = value.visualizer.twoColors ?? true
+    value.visualizer.radialMaxHeight = value.visualizer.radialMaxHeight ?? 100
+    value.visualizer.particleMaskWidth = value.visualizer.particleMaskWidth ?? 0.6
+    value.visualizer.particleMaskHeight = value.visualizer.particleMaskHeight ?? 0.6
+    delete value.visualizer.glowEnabled
+    delete value.visualizer.glowIntensity
+    delete value.visualizer.glowSpread
+  }
   return value
 }
 

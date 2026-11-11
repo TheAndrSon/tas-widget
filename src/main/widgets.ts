@@ -236,7 +236,7 @@ export class WidgetManager {
       bounds.y,
       bounds.width,
       bounds.height,
-      instance?.type === 'equalizer'
+      this.visibleFraction(instance)
     )
     if (clamped.x !== bounds.x || clamped.y !== bounds.y) {
       this.suppressMove.add(id)
@@ -251,7 +251,7 @@ export class WidgetManager {
     y: number,
     width: number,
     height: number,
-    allowHalfOutside = false
+    keepVisible = 1
   ): Position {
     const displays = screen.getAllDisplays().map((display) => display.workArea)
     if (displays.length === 0) return { x, y }
@@ -264,16 +264,21 @@ export class WidgetManager {
         best = rect
       }
     }
-    const halfX = allowHalfOutside ? width / 2 : 0
-    const halfY = allowHalfOutside ? height / 2 : 0
-    const minX = best.x - halfX
-    const minY = best.y - halfY
-    const maxX = best.x + best.width - width + halfX
-    const maxY = best.y + best.height - height + halfY
+    const fraction = Math.min(1, Math.max(0.05, keepVisible))
+    const overlapX = width * fraction
+    const overlapY = height * fraction
+    const minX = best.x - (width - overlapX)
+    const minY = best.y - (height - overlapY)
+    const maxX = best.x + best.width - overlapX
+    const maxY = best.y + best.height - overlapY
     return {
       x: Math.round(Math.min(Math.max(x, minX), maxX)),
       y: Math.round(Math.min(Math.max(y, minY), maxY))
     }
+  }
+
+  private visibleFraction(instance?: WidgetInstance | null): number {
+    return instance?.type === 'equalizer' ? 0.1 : 1
   }
 
   private displayForRect(x: number, y: number, width: number, height: number): Electron.Rectangle {
@@ -382,7 +387,7 @@ export class WidgetManager {
       y,
       bounds.width,
       bounds.height,
-      this.store.get(id)?.type === 'equalizer'
+      this.visibleFraction(this.store.get(id))
     )
     return { x: Math.round(clamped.x), y: Math.round(clamped.y) }
   }
@@ -511,7 +516,7 @@ export class WidgetManager {
       y,
       bounds.width,
       bounds.height,
-      this.store.get(id)?.type === 'equalizer'
+      this.visibleFraction(this.store.get(id))
     )
     this.suppressMove.add(id)
     win.setBounds({ x: clamped.x, y: clamped.y, width: bounds.width, height: bounds.height })
@@ -615,7 +620,7 @@ export class WidgetManager {
         instance.position.y,
         size.width,
         size.height,
-        instance.type === 'equalizer'
+        this.visibleFraction(instance)
       )
     }
     return this.defaultPosition(instance, size)
@@ -689,7 +694,7 @@ export class WidgetManager {
       minY + (count % 6) * 24,
       size.width,
       size.height,
-      instance.type === 'equalizer'
+      this.visibleFraction(instance)
     )
   }
 
@@ -809,6 +814,10 @@ export class WidgetManager {
   private applyEqualizerDock(id: string, win: BrowserWindow, instance: WidgetInstance): void {
     const settings = instance.settings as EqualizerSettings
     if (settings.stretch) {
+      if (!instance.locked) {
+        this.store.update(id, { locked: true })
+        this.apply(win, { ...instance, locked: true })
+      }
       const bounds = win.getBounds()
       const chosen =
         settings.displayId == null
@@ -923,15 +932,20 @@ export class WidgetManager {
     if (!instance || !win || instance.type !== 'equalizer') return
     if (!stretch) {
       this.store.updateSettings(id, { stretch: false })
+      this.store.update(id, { locked: false })
       this.store.setManualSize(id, null)
       if (win.isMaximized()) win.unmaximize()
       const next = this.store.get(id)
       if (next) {
+        this.apply(win, next)
         this.applyEqualizerDock(id, win, next)
         setTimeout(() => {
           const current = this.store.get(id)
           const widget = this.get(id)
-          if (current && widget) this.applyEqualizerScale(id, widget, current)
+          if (current && widget) {
+            this.apply(widget, current)
+            this.applyEqualizerScale(id, widget, current)
+          }
         }, 250)
       }
       this.onChange()
@@ -953,11 +967,47 @@ export class WidgetManager {
       })
     const area = target.bounds
     this.store.updateSettings(id, { stretch: true })
+    this.store.update(id, { locked: true })
     if (instance.manualSize) this.store.setManualSize(id, null)
     this.applyStretchBounds(win, area)
     this.store.move(id, area.x, area.y)
+    const updated = this.store.get(id)
+    if (updated) this.apply(win, updated)
     this.nativeLayer?.setTopmost(win, instance.layer === 'always')
     this.onChange()
+  }
+
+  setEqualizerPosition(id: string, x: number, y: number): void {
+    const win = this.get(id)
+    const instance = this.store.get(id)
+    if (!win || !instance || instance.type !== 'equalizer') return
+    const bounds = win.getBounds()
+    const clamped = this.clampToDisplay(x, y, bounds.width, bounds.height, 0.1)
+    this.suppressMove.add(id)
+    win.setBounds({ x: clamped.x, y: clamped.y, width: bounds.width, height: bounds.height })
+    this.suppressMove.delete(id)
+    this.store.move(id, clamped.x, clamped.y)
+  }
+
+  resetEqualizerPosition(id: string): void {
+    const win = this.get(id)
+    const instance = this.store.get(id)
+    if (!win || !instance || instance.type !== 'equalizer') return
+    const size = this.windowSize(instance)
+    let position: Position
+    if ((instance.settings as EqualizerSettings).stretch) {
+      const display = resolveTargetDisplay(
+        instance.displayId ?? this.store.state.general.defaultDisplayId
+      )
+      position = { x: display.bounds.x, y: display.bounds.y }
+    } else {
+      position = this.defaultPosition(instance, size)
+    }
+    const clamped = this.clampToDisplay(position.x, position.y, size.width, size.height, 0.1)
+    this.suppressMove.add(id)
+    win.setBounds({ x: clamped.x, y: clamped.y, width: size.width, height: size.height })
+    this.suppressMove.delete(id)
+    this.store.move(id, clamped.x, clamped.y)
   }
 
   updateWidget(id: string, patch: Partial<WidgetInstance>): void {

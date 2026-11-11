@@ -73,6 +73,9 @@ test('визуализатор: отражение, прозрачность, р
   assert.equal(typeof visualizer.radialLength, 'number')
   assert.equal(typeof visualizer.particleMaskWidth, 'number')
   assert.equal(typeof visualizer.particleMaskHeight, 'number')
+  assert.equal(typeof visualizer.spectrumSmoothing, 'number')
+  assert.equal(typeof visualizer.twoColors, 'boolean')
+  assert.equal(typeof visualizer.radialMaxHeight, 'number')
 })
 
 test('визуализатор музыки: частоты и количество элементов', () => {

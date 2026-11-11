@@ -422,6 +422,20 @@ export function registerIpc(ctx: AppContext): void {
     return ctx.store.state
   })
 
+  ipcMain.handle('equalizer:position', (_event, id: unknown, x: unknown, y: unknown) => {
+    if (typeof id !== 'string' || !Number.isFinite(x) || !Number.isFinite(y)) return ctx.store.state
+    ctx.widgets.setEqualizerPosition(id, Number(x), Number(y))
+    ctx.refresh()
+    return ctx.store.state
+  })
+
+  ipcMain.handle('equalizer:reset-position', (_event, id: unknown) => {
+    if (typeof id !== 'string') return ctx.store.state
+    ctx.widgets.resetEqualizerPosition(id)
+    ctx.refresh()
+    return ctx.store.state
+  })
+
   ipcMain.handle('equalizer:align', (_event, id: unknown, edge: unknown) => {
     if (typeof id !== 'string') return
     if (edge !== 'top' && edge !== 'bottom' && edge !== 'left' && edge !== 'right') return
