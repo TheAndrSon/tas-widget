@@ -175,15 +175,10 @@ export interface WeatherSettings {
 }
 
 export type VisualizerMode =
-  | 'off'
-  | 'bars'
-  | 'ring'
-  | 'sparks'
-  | 'radial'
-  | 'mirror'
-  | 'dots'
-  | 'line'
-export type VisualizerPalette = 'neon' | 'sunset' | 'ice' | 'matrix' | 'candy' | 'gradient' | 'custom'
+  'off' | 'bars' | 'radial' | 'line' | 'dots' | 'particles' | 'waves' | 'waveform'
+export type VisualizerPalette =
+  'neon' | 'sunset' | 'ice' | 'matrix' | 'candy' | 'aurora' | 'fire' | 'custom'
+export type BarShape = 'rounded' | 'rect'
 export type AudioSource = 'system' | 'window' | 'multi'
 
 export interface VisualizerSettings {
@@ -193,8 +188,16 @@ export interface VisualizerSettings {
   color2: string
   /** 0.2..2 */
   intensity: number
-  /** 12..1200; по умолчанию 64 */
+  /** 12..3600; по умолчанию 64 */
   bars: number
+  barThickness: number
+  barGap: number
+  barShape: BarShape
+  mirror: boolean
+  axis: number
+  rotation: number
+  mirrorX: boolean
+  mirrorY: boolean
   /** максимальная высота столбика, % высоты виджета */
   maxHeight: number
   source: AudioSource
@@ -206,15 +209,32 @@ export interface VisualizerSettings {
   freqMin: number
   freqMax: number
   freqScale: 'log' | 'linear'
-  /** толщина линий для «Обводки», px */
+  lineThickness: number
+  dotSize: number
+  sparkSize: number
+  sparkSpeed: number
+  particleOrigin: 'bottom' | 'center'
+  particleCount: number
+  particleReactivity: number
+  particleSpread: number
+  particleRandomSize: boolean
+  radialHalf: boolean
+  waveCount: number
+  waveSpeed: number
+  waveThickness: number
+  waveLife: number
+  waveIntensity: number
+  waveRadius: number
+  glowEnabled: boolean
+  glowIntensity: number
+  glowSpread: number
+  mirrorOffsetX: number
+  mirrorOffsetY: number
+  /** устаревшие поля старых режимов, оставлены для миграции */
   ringThickness: number
-  /** сила пульсации колец, 0..2 */
   ringPulse: number
-  /** угол градиента, 0..360 */
   gradientAngle: number
-  /** масштаб градиента, 0.2..5 */
   gradientScale: number
-  /** скорость перелива, 0.2..5 */
   gradientSpeed: number
 }
 
@@ -473,25 +493,12 @@ export type WidgetSettings = WidgetSettingsMap[WidgetType]
 /* ------------------------------------------------------------------ */
 
 export type ShapeId = 'squircle' | 'rect' | 'custom'
-export type CursorEffect =
-  | 'none'
-  | 'glow'
-  | 'ring'
-  | 'sparkles'
-  | 'trail'
-  | 'spotlight'
-  | 'fairy'
+export type CursorEffect = 'none' | 'glow' | 'ring' | 'sparkles' | 'trail' | 'spotlight' | 'fairy'
 export type BackgroundKind = 'glass' | 'color' | 'gradient' | 'image'
 export type TextureKind = 'none' | 'noise' | 'grid' | 'scanlines' | 'paper'
 export type AmbientKind = 'none' | 'stars' | 'weather' | 'fireflies' | 'matrix' | 'synthwave'
 export type BorderKind =
-  | 'solid'
-  | 'dashed'
-  | 'dotted'
-  | 'double'
-  | 'neon'
-  | 'gradient'
-  | 'fireflies'
+  'solid' | 'dashed' | 'dotted' | 'double' | 'neon' | 'gradient' | 'fireflies'
 export type TextAlign = 'left' | 'center' | 'right'
 export type OutlineMode = 'center' | 'outside'
 export type TextPattern = 'none' | 'horizontal' | 'diagonal' | 'dots' | 'grid'
@@ -769,17 +776,14 @@ export interface MusicSnapshot {
 }
 
 export type MusicAction = 'toggle' | 'next' | 'prev' | 'seek'
-export type SimsAction =
-  | 'feed'
-  | 'play'
-  | 'sleep'
-  | 'shower'
-  | 'chat'
-  | 'worsen'
-  | 'reset'
+export type SimsAction = 'feed' | 'play' | 'sleep' | 'shower' | 'chat' | 'worsen' | 'reset'
 
 export type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends object ? (T[K] extends Array<unknown> ? T[K] : DeepPartial<T[K]>) : T[K]
+  [K in keyof T]?: T[K] extends object
+    ? T[K] extends Array<unknown>
+      ? T[K]
+      : DeepPartial<T[K]>
+    : T[K]
 }
 
 export type FinanceResult =
@@ -886,7 +890,11 @@ export interface WidgetApi {
   deleteZodiacPack(id: string): Promise<boolean>
   saveTarotDeck(deck: TarotDeck): Promise<TarotDeck>
   deleteTarotDeck(id: string): Promise<boolean>
-  simsAction(groupId: string, action: SimsAction, difficulty?: SimsDifficulty): Promise<PersistedState>
+  simsAction(
+    groupId: string,
+    action: SimsAction,
+    difficulty?: SimsDifficulty
+  ): Promise<PersistedState>
   openSimsMenu(id: string): void
   closeSimsMenu(): void
   alignEqualizer(id: string, edge: 'top' | 'bottom' | 'left' | 'right'): Promise<void>
@@ -900,14 +908,7 @@ export interface WidgetApi {
   quit(): void
 }
 
-export type AlignAction =
-  | 'left'
-  | 'centerX'
-  | 'right'
-  | 'top'
-  | 'centerY'
-  | 'bottom'
-  | 'grid'
+export type AlignAction = 'left' | 'centerX' | 'right' | 'top' | 'centerY' | 'bottom' | 'grid'
 
 export interface MoveModifiers {
   alt: boolean

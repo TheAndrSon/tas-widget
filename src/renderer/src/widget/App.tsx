@@ -100,7 +100,12 @@ function ImageLayer({
   if (!slot || !slot.imageId) return null
   return (
     <div className={`img-layer ${className}`} style={slotLayerStyle(slot)}>
-      <img src={imageUrl(slot.imageId)} style={cropImageStyle(slot.crop)} alt="" draggable={false} />
+      <img
+        src={imageUrl(slot.imageId)}
+        style={cropImageStyle(slot.crop)}
+        alt=""
+        draggable={false}
+      />
     </div>
   )
 }
@@ -137,8 +142,7 @@ export function WidgetApp({ instanceId }: { instanceId: string }): JSX.Element {
   const unlocked = Boolean(instance && !instance.locked)
   const manual = instance?.manualSize ?? null
   const dockedEqualizer =
-    instance?.type === 'equalizer' &&
-    (instance.settings as EqualizerSettings).dock !== 'free'
+    instance?.type === 'equalizer' && (instance.settings as EqualizerSettings).dock !== 'free'
   const resizable = unlocked && !layoutMode && !dockedEqualizer && instance?.type !== 'equalizer'
 
   useEffect(() => {
@@ -164,7 +168,14 @@ export function WidgetApp({ instanceId }: { instanceId: string }): JSX.Element {
       observer.disconnect()
       cancelAnimationFrame(frame)
     }
-  }, [instanceId, instance, instance?.scale, instance?.locked, instance?.manualSize, instance?.style])
+  }, [
+    instanceId,
+    instance,
+    instance?.scale,
+    instance?.locked,
+    instance?.manualSize,
+    instance?.style
+  ])
 
   // Минимальный размер: контент + запас на пару символов с каждой стороны.
   useLayoutEffect(() => {
@@ -223,7 +234,12 @@ export function WidgetApp({ instanceId }: { instanceId: string }): JSX.Element {
     const glowPad = style.border.enabled
       ? Math.ceil(style.border.width * 2 + style.border.glowSize + style.border.glow * 16)
       : 0
-    const base = { top: 30 + glowPad, right: 16 + glowPad, bottom: 16 + glowPad, left: 16 + glowPad }
+    const base = {
+      top: 30 + glowPad,
+      right: 16 + glowPad,
+      bottom: 16 + glowPad,
+      left: 16 + glowPad
+    }
     const applyPad = (next: typeof base): void => {
       const previous = framePadRef.current
       // При первом запуске окно уже сохранено с текущими полями: не сдвигаем его,
@@ -441,147 +457,141 @@ export function WidgetApp({ instanceId }: { instanceId: string }): JSX.Element {
         onPointerUp={endLayoutDrag}
         onPointerCancel={endLayoutDrag}
       >
-      {unlocked && !layoutMode && <EditBar instance={instance} label={label} />}
-      {layoutMode && <div className="layout-badge no-drag">раскладка · тяните карточку</div>}
+        {unlocked && !layoutMode && <EditBar instance={instance} label={label} />}
+        {layoutMode && <div className="layout-badge no-drag">раскладка · тяните карточку</div>}
 
-      <div className={`shell-wrap shape-${style.shape}`}>
-        {!style.windowless && (
-          <FrameLayer slot={style.frame?.position === 'behind' ? style.frame : null} />
-        )}
-
-        <div className={shellClass}>
+        <div className={`shell-wrap shape-${style.shape}`}>
           {!style.windowless && (
-            <>
-              <div className="bg-base" style={backgroundCss(style)}>
-                {style.background.kind === 'image' && style.background.imageId && (
-                  <img
-                    src={imageUrl(style.background.imageId)}
-                    style={cropImageStyle(style.background.crop)}
-                    alt=""
-                    draggable={false}
-                  />
-                )}
-              </div>
-              <div className="bg-darken" />
-              <div className="bg-texture" data-texture={style.texture} />
-            </>
+            <FrameLayer slot={style.frame?.position === 'behind' ? style.frame : null} />
           )}
 
-          {type === 'weather' && (instance.settings as WeatherSettings).atmosphere && (
-            <WeatherAtmosphere settings={instance.settings as WeatherSettings} />
-          )}
-          {style.ambient.kind === 'weather' && type === 'weather' && (
-            <WeatherEffect settings={instance.settings as WeatherSettings} />
-          )}
-          <AmbientEffect settings={style.ambient} />
-          {type === 'music' && musicSettings.visualizer.mode !== 'off' && (
-            <Visualizer settings={musicSettings.visualizer} className="music-visualizer" />
-          )}
+          <div className={shellClass}>
+            {!style.windowless && (
+              <>
+                <div className="bg-base" style={backgroundCss(style)}>
+                  {style.background.kind === 'image' && style.background.imageId && (
+                    <img
+                      src={imageUrl(style.background.imageId)}
+                      style={cropImageStyle(style.background.crop)}
+                      alt=""
+                      draggable={false}
+                    />
+                  )}
+                </div>
+                <div className="bg-darken" />
+                <div className="bg-texture" data-texture={style.texture} />
+              </>
+            )}
 
-          <div className="content" style={{ zoom: style.fontScale }}>
-            {type === 'weather' && (
-              <WeatherWidget
-                settings={instance.settings as WeatherSettings}
-                instanceId={instance.id}
-              />
+            {type === 'weather' && (instance.settings as WeatherSettings).atmosphere && (
+              <WeatherAtmosphere settings={instance.settings as WeatherSettings} />
             )}
-            {type === 'music' && (
-              <MusicWidget
-                settings={musicSettings}
-                interactive={musicInteractive}
-              />
+            {style.ambient.kind === 'weather' && type === 'weather' && (
+              <WeatherEffect settings={instance.settings as WeatherSettings} />
             )}
-            {type === 'clock' && <ClockWidget settings={instance.settings as ClockSettings} />}
-            {type === 'weekday' && (
-              <WeekdayWidget settings={instance.settings as WeekdaySettings} />
+            <AmbientEffect settings={style.ambient} />
+            {type === 'music' && musicSettings.visualizer.mode !== 'off' && (
+              <Visualizer settings={musicSettings.visualizer} className="music-visualizer" />
             )}
-            {type === 'calendar' && (
-              <CalendarWidget settings={instance.settings as CalendarSettings} unlocked={unlocked} />
-            )}
-            {type === 'astro' && (
-              <AstroWidget settings={instance.settings as AstroSettings} instanceId={instance.id} />
-            )}
-            {type === 'tarot' && (
-              <TarotWidget
-                settings={tarotSettings}
-                interactive={tarotInteractive}
-                instanceId={instance.id}
-              />
-            )}
-            {type === 'dice' && (
-              <DiceWidget
-                settings={diceSettings}
-                interactive={diceInteractive}
-                instanceId={instance.id}
-              />
-            )}
-            {type === 'equalizer' && (
-              <EqualizerWidget settings={instance.settings as EqualizerSettings} />
-            )}
-            {type === 'todo' && (
-              <TodoWidget
-                settings={todoSettings}
-                interactive={todoInteractive}
-                instanceId={instance.id}
-              />
-            )}
-            {type === 'sims' && (
-              <SimsWidget
-                settings={simsSettings}
-                interactive={simsInteractive}
-                instanceId={instance.id}
-              />
-            )}
-            {type === 'finance' && (
-              <FinanceWidget settings={instance.settings as FinanceSettings} instanceId={instance.id} />
-            )}
-            {type === 'twitch' && <TwitchWidget settings={instance.settings as TwitchSettings} />}
-            {type === 'system' && <SystemWidget settings={instance.settings as SystemSettings} />}
+
+            <div className="content" style={{ zoom: style.fontScale }}>
+              {type === 'weather' && (
+                <WeatherWidget
+                  settings={instance.settings as WeatherSettings}
+                  instanceId={instance.id}
+                />
+              )}
+              {type === 'music' && (
+                <MusicWidget settings={musicSettings} interactive={musicInteractive} />
+              )}
+              {type === 'clock' && <ClockWidget settings={instance.settings as ClockSettings} />}
+              {type === 'weekday' && (
+                <WeekdayWidget settings={instance.settings as WeekdaySettings} />
+              )}
+              {type === 'calendar' && (
+                <CalendarWidget
+                  settings={instance.settings as CalendarSettings}
+                  unlocked={unlocked}
+                />
+              )}
+              {type === 'astro' && (
+                <AstroWidget
+                  settings={instance.settings as AstroSettings}
+                  instanceId={instance.id}
+                />
+              )}
+              {type === 'tarot' && (
+                <TarotWidget
+                  settings={tarotSettings}
+                  interactive={tarotInteractive}
+                  instanceId={instance.id}
+                />
+              )}
+              {type === 'dice' && (
+                <DiceWidget
+                  settings={diceSettings}
+                  interactive={diceInteractive}
+                  instanceId={instance.id}
+                />
+              )}
+              {type === 'equalizer' && (
+                <EqualizerWidget settings={instance.settings as EqualizerSettings} />
+              )}
+              {type === 'todo' && (
+                <TodoWidget
+                  settings={todoSettings}
+                  interactive={todoInteractive}
+                  instanceId={instance.id}
+                />
+              )}
+              {type === 'sims' && (
+                <SimsWidget
+                  settings={simsSettings}
+                  interactive={simsInteractive}
+                  instanceId={instance.id}
+                />
+              )}
+              {type === 'finance' && (
+                <FinanceWidget
+                  settings={instance.settings as FinanceSettings}
+                  instanceId={instance.id}
+                />
+              )}
+              {type === 'twitch' && <TwitchWidget settings={instance.settings as TwitchSettings} />}
+              {type === 'system' && <SystemWidget settings={instance.settings as SystemSettings} />}
+            </div>
           </div>
+
+          {unlocked && !layoutMode && <div className="edit-ring" />}
+
+          {!style.windowless && (
+            <FrameLayer slot={style.frame?.position === 'above' ? style.frame : null} />
+          )}
+
+          {style.border.enabled && !style.windowless && (
+            <div
+              className={`ring-layer${style.border.animated ? ' is-animated' : ''}`}
+              data-border={style.border.style}
+            >
+              {style.border.style === 'fireflies' &&
+                [0, 1, 2, 3, 4].map((index) => <i key={index} />)}
+            </div>
+          )}
         </div>
 
-        {type === 'music' && musicSettings.visualizer.mode === 'ring' && (
+        {resizable && (
           <div
-            className="music-ring"
-            style={
-              {
-                '--viz-color1': musicSettings.visualizer.color1,
-                '--viz-color2': musicSettings.visualizer.color2
-              } as CSSProperties
-            }
-          />
-        )}
-        {unlocked && !layoutMode && <div className="edit-ring" />}
-
-        {!style.windowless && (
-          <FrameLayer slot={style.frame?.position === 'above' ? style.frame : null} />
-        )}
-
-        {style.border.enabled && !style.windowless && (
-          <div
-            className={`ring-layer${style.border.animated ? ' is-animated' : ''}`}
-            data-border={style.border.style}
+            className={`resize-handle no-drag${resizing ? ' is-active' : ''}`}
+            title="Потяните, чтобы изменить размер. Двойной клик — авторазмер"
+            onPointerDown={startResize}
+            onPointerMove={moveResize}
+            onPointerUp={endResize}
+            onPointerCancel={endResize}
+            onDoubleClick={() => void window.widgets.setManualSize(instance.id, null)}
           >
-            {style.border.style === 'fireflies' &&
-              [0, 1, 2, 3, 4].map((index) => <i key={index} />)}
+            {resizing && sizeLabel && <span className="resize-badge">{sizeLabel}</span>}
           </div>
         )}
-
-      </div>
-
-      {resizable && (
-        <div
-          className={`resize-handle no-drag${resizing ? ' is-active' : ''}`}
-          title="Потяните, чтобы изменить размер. Двойной клик — авторазмер"
-          onPointerDown={startResize}
-          onPointerMove={moveResize}
-          onPointerUp={endResize}
-          onPointerCancel={endResize}
-          onDoubleClick={() => void window.widgets.setManualSize(instance.id, null)}
-        >
-          {resizing && sizeLabel && <span className="resize-badge">{sizeLabel}</span>}
-        </div>
-      )}
       </div>
 
       <div className="cursor-scope" style={styleVars(style, type)}>

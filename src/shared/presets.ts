@@ -93,6 +93,14 @@ export const DEFAULT_VISUALIZER: VisualizerSettings = {
   color2: '#a56bff',
   intensity: 1,
   bars: 64,
+  barThickness: 6,
+  barGap: 3,
+  barShape: 'rounded',
+  mirror: false,
+  axis: 0.5,
+  rotation: 0,
+  mirrorX: false,
+  mirrorY: false,
   maxHeight: 82,
   source: 'system',
   audioWindowIds: [],
@@ -100,6 +108,27 @@ export const DEFAULT_VISUALIZER: VisualizerSettings = {
   freqMin: 30,
   freqMax: 16000,
   freqScale: 'log',
+  lineThickness: 2,
+  dotSize: 3,
+  sparkSize: 2,
+  sparkSpeed: 1,
+  particleOrigin: 'bottom',
+  particleCount: 120,
+  particleReactivity: 1,
+  particleSpread: 1,
+  particleRandomSize: false,
+  radialHalf: false,
+  waveCount: 4,
+  waveSpeed: 1,
+  waveThickness: 2,
+  waveLife: 2.4,
+  waveIntensity: 1,
+  waveRadius: 20,
+  glowEnabled: false,
+  glowIntensity: 0.5,
+  glowSpread: 12,
+  mirrorOffsetX: 0,
+  mirrorOffsetY: 0,
   ringThickness: 3,
   ringPulse: 1,
   gradientAngle: 135,
@@ -110,12 +139,12 @@ export const DEFAULT_VISUALIZER: VisualizerSettings = {
 export const VISUALIZER_MODES: Array<{ value: VisualizerSettings['mode']; label: string }> = [
   { value: 'off', label: 'Выкл' },
   { value: 'bars', label: 'Столбики' },
-  { value: 'mirror', label: 'Зеркало' },
   { value: 'radial', label: 'Радиальные' },
   { value: 'line', label: 'Линия' },
+  { value: 'waveform', label: 'Сплошная волна' },
   { value: 'dots', label: 'Точки' },
-  { value: 'ring', label: 'Обводка' },
-  { value: 'sparks', label: 'Искры' }
+  { value: 'particles', label: 'Частицы' },
+  { value: 'waves', label: 'Волны' }
 ]
 
 export const AUDIO_SOURCES: Array<{ value: VisualizerSettings['source']; label: string }> = [
@@ -135,7 +164,8 @@ export const VISUALIZER_PALETTES: Array<{
   { value: 'ice', label: 'Лёд', color1: '#9fe8ff', color2: '#5f8bff' },
   { value: 'matrix', label: 'Матрица', color1: '#7dff9e', color2: '#0f8f43' },
   { value: 'candy', label: 'Карамель', color1: '#ffd166', color2: '#ff7ac6' },
-  { value: 'gradient', label: 'Перелив', color1: '#62e6ff', color2: '#ff7ac6' },
+  { value: 'aurora', label: 'Аврора', color1: '#42ffd9', color2: '#2b6cff' },
+  { value: 'fire', label: 'Огонь', color1: '#ffb347', color2: '#ff3d3d' },
   { value: 'custom', label: 'Свои цвета', color1: '#62e6ff', color2: '#a56bff' }
 ]
 
@@ -273,7 +303,15 @@ export const BUILTIN_PRESETS: StylePreset[] = [
       presetId: 'clay',
       radius: 26,
       corners: { tl: 26, tr: 26, br: 26, bl: 26 },
-      background: bg({ kind: 'gradient', color: '#f4ecff', color2: '#dff5ec', angle: 150, opacity: 1, blur: 0, darken: 0 }),
+      background: bg({
+        kind: 'gradient',
+        color: '#f4ecff',
+        color2: '#dff5ec',
+        angle: 150,
+        opacity: 1,
+        blur: 0,
+        darken: 0
+      }),
       border: border({ width: 1, color: '#ffffff', opacity: 0.55 }),
       textColor: '#2f2a3a',
       mutedColor: '#6d647e',
@@ -306,8 +344,24 @@ export const BUILTIN_PRESETS: StylePreset[] = [
       presetId: 'neon',
       radius: 18,
       corners: { tl: 18, tr: 18, br: 18, bl: 18 },
-      background: bg({ kind: 'gradient', color: '#0a0614', color2: '#06141a', angle: 135, opacity: 0.94, blur: 18, darken: 0.2 }),
-      border: border({ style: 'neon', width: 2, color: '#785aff', color2: '#50dcff', opacity: 0.7, glow: 1.2, animated: true }),
+      background: bg({
+        kind: 'gradient',
+        color: '#0a0614',
+        color2: '#06141a',
+        angle: 135,
+        opacity: 0.94,
+        blur: 18,
+        darken: 0.2
+      }),
+      border: border({
+        style: 'neon',
+        width: 2,
+        color: '#785aff',
+        color2: '#50dcff',
+        opacity: 0.7,
+        glow: 1.2,
+        animated: true
+      }),
       textColor: '#eef2ff',
       mutedColor: '#a5b2d8',
       accent: '#50dcff',
@@ -340,8 +394,23 @@ export const BUILTIN_PRESETS: StylePreset[] = [
       presetId: 'chrome',
       radius: 28,
       corners: { tl: 28, tr: 28, br: 28, bl: 28 },
-      background: bg({ kind: 'gradient', color: '#f8f9fb', color2: '#8b9199', angle: 135, opacity: 1, blur: 0, darken: 0 }),
-      border: border({ style: 'gradient', width: 1, color: '#ffffff', color2: '#5d646d', opacity: 0.8, animated: true }),
+      background: bg({
+        kind: 'gradient',
+        color: '#f8f9fb',
+        color2: '#8b9199',
+        angle: 135,
+        opacity: 1,
+        blur: 0,
+        darken: 0
+      }),
+      border: border({
+        style: 'gradient',
+        width: 1,
+        color: '#ffffff',
+        color2: '#5d646d',
+        opacity: 0.8,
+        animated: true
+      }),
       textColor: '#16181c',
       mutedColor: '#555b63',
       accent: '#4d545c',
@@ -372,8 +441,24 @@ export const BUILTIN_PRESETS: StylePreset[] = [
       presetId: 'crimson',
       radius: 18,
       corners: { tl: 18, tr: 18, br: 18, bl: 18 },
-      background: bg({ kind: 'gradient', color: '#180709', color2: '#3d0c12', angle: 160, opacity: 0.97, blur: 0, darken: 0.25 }),
-      border: border({ style: 'solid', width: 2, color: '#e0454b', color2: '#6b0d16', opacity: 0.55, glow: 0.3, animated: false }),
+      background: bg({
+        kind: 'gradient',
+        color: '#180709',
+        color2: '#3d0c12',
+        angle: 160,
+        opacity: 0.97,
+        blur: 0,
+        darken: 0.25
+      }),
+      border: border({
+        style: 'solid',
+        width: 2,
+        color: '#e0454b',
+        color2: '#6b0d16',
+        opacity: 0.55,
+        glow: 0.3,
+        animated: false
+      }),
       textColor: '#f3e9e6',
       mutedColor: '#b98f8f',
       accent: '#e0454b',
@@ -391,7 +476,15 @@ export const BUILTIN_PRESETS: StylePreset[] = [
       radius: 14,
       corners: { tl: 14, tr: 14, br: 14, bl: 14 },
       background: bg({ kind: 'color', color: '#040a0b', opacity: 0.97, blur: 0, darken: 0 }),
-      border: border({ style: 'neon', width: 1, color: '#35d6e8', color2: '#35d6e8', opacity: 0.6, glow: 0.9, animated: true }),
+      border: border({
+        style: 'neon',
+        width: 1,
+        color: '#35d6e8',
+        color2: '#35d6e8',
+        opacity: 0.6,
+        glow: 0.9,
+        animated: true
+      }),
       textColor: '#e9ffff',
       mutedColor: '#7faeb3',
       accent: '#35d6e8',
@@ -425,8 +518,24 @@ export const BUILTIN_PRESETS: StylePreset[] = [
       presetId: 'plumbob',
       radius: 18,
       corners: { tl: 18, tr: 18, br: 18, bl: 18 },
-      background: bg({ kind: 'gradient', color: '#051a14', color2: '#0c3a2a', angle: 150, opacity: 0.93, blur: 20, darken: 0.15 }),
-      border: border({ style: 'neon', width: 1.5, color: '#7ef29b', color2: '#39d6a0', opacity: 0.7, glow: 1.1, animated: true }),
+      background: bg({
+        kind: 'gradient',
+        color: '#051a14',
+        color2: '#0c3a2a',
+        angle: 150,
+        opacity: 0.93,
+        blur: 20,
+        darken: 0.15
+      }),
+      border: border({
+        style: 'neon',
+        width: 1.5,
+        color: '#7ef29b',
+        color2: '#39d6a0',
+        opacity: 0.7,
+        glow: 1.1,
+        animated: true
+      }),
       textColor: '#ecfff3',
       mutedColor: '#8fd9b0',
       accent: '#7ef29b',
@@ -463,7 +572,10 @@ export function createBlankStyle(): WidgetStyle {
 }
 
 /** Приводит стиль с диска/из IPC к актуальной форме. */
-export function normalizeStyle(input: Partial<WidgetStyle> | null | undefined, type: WidgetType): WidgetStyle {
+export function normalizeStyle(
+  input: Partial<WidgetStyle> | null | undefined,
+  type: WidgetType
+): WidgetStyle {
   const defaults = createDefaultStyle(type)
   if (!input) return defaults
 
@@ -531,14 +643,17 @@ export function normalizeStyle(input: Partial<WidgetStyle> | null | undefined, t
   style.windowless = Boolean(style.windowless)
   const kinds = ['glass', 'color', 'gradient', 'image']
   if (!kinds.includes(background.kind)) background.kind = 'glass'
-  if (!['none', 'noise', 'grid', 'scanlines', 'paper'].includes(style.texture)) style.texture = 'none'
+  if (!['none', 'noise', 'grid', 'scanlines', 'paper'].includes(style.texture))
+    style.texture = 'none'
   if (!CURSOR_EFFECT_OPTIONS.some((effect) => effect.value === style.cursorEffect)) {
     style.cursorEffect = 'none'
   }
   if (style.presetId === 'crimson' && style.cursorEffect === 'sparkles') {
     style.cursorEffect = 'none'
   }
-  if (!['none', 'stars', 'weather', 'fireflies', 'matrix', 'synthwave'].includes(ambientValue.kind)) {
+  if (
+    !['none', 'stars', 'weather', 'fireflies', 'matrix', 'synthwave'].includes(ambientValue.kind)
+  ) {
     ambientValue.kind = 'none'
   }
   if (!['left', 'center', 'right'].includes(style.align.primary)) style.align.primary = 'left'
@@ -616,23 +731,29 @@ export function normalizeVisualizer(
   input: Partial<VisualizerSettings> | null | undefined
 ): VisualizerSettings {
   const value = input ?? {}
-  const palette = ['neon', 'sunset', 'ice', 'matrix', 'candy', 'gradient', 'custom'].includes(
-    value.palette ?? ''
-  )
+  const rawMode = String(value.mode ?? 'off')
+  const mode = rawMode === 'sparks' ? 'particles' : rawMode
+  const palette = VISUALIZER_PALETTES.some((item) => item.value === value.palette)
     ? (value.palette as VisualizerSettings['palette'])
     : 'neon'
   const preset = VISUALIZER_PALETTES.find((item) => item.value === palette)
   return {
-    mode: ['off', 'bars', 'ring', 'sparks', 'radial', 'mirror', 'dots', 'line'].includes(
-      value.mode ?? ''
-    )
-      ? (value.mode as VisualizerSettings['mode'])
+    mode: VISUALIZER_MODES.some((item) => item.value === mode)
+      ? (mode as VisualizerSettings['mode'])
       : 'off',
     palette,
     color1: value.color1 || preset?.color1 || '#62e6ff',
     color2: value.color2 || preset?.color2 || '#a56bff',
     intensity: Math.min(2, Math.max(0.2, Number(value.intensity ?? 1))),
-    bars: Math.min(1200, Math.max(12, Math.round(Number(value.bars ?? 64)))),
+    bars: Math.min(3600, Math.max(12, Math.round(Number(value.bars ?? 64)))),
+    barThickness: Math.min(60, Math.max(1, Number(value.barThickness ?? 6))),
+    barGap: Math.min(40, Math.max(0, Number(value.barGap ?? 3))),
+    barShape: value.barShape === 'rect' ? 'rect' : 'rounded',
+    mirror: Boolean(value.mirror),
+    axis: Math.min(1, Math.max(0, Number(value.axis ?? 0.5))),
+    rotation: Math.min(360, Math.max(0, Number(value.rotation ?? 0))),
+    mirrorX: Boolean(value.mirrorX),
+    mirrorY: Boolean(value.mirrorY),
     maxHeight: Math.min(100, Math.max(20, Math.round(Number(value.maxHeight ?? 82)))),
     source: ['system', 'window', 'multi'].includes(value.source ?? '')
       ? (value.source as VisualizerSettings['source'])
@@ -642,8 +763,32 @@ export function normalizeVisualizer(
       : [],
     mirrorOrigin: value.mirrorOrigin === 'end' ? 'end' : 'start',
     freqMin: Math.min(8000, Math.max(20, Number(value.freqMin ?? 30))),
-    freqMax: Math.min(22000, Math.max(Number(value.freqMin ?? 30) + 100, Number(value.freqMax ?? 16000))),
+    freqMax: Math.min(
+      22000,
+      Math.max(Number(value.freqMin ?? 30) + 100, Number(value.freqMax ?? 16000))
+    ),
     freqScale: value.freqScale === 'linear' ? 'linear' : 'log',
+    lineThickness: Math.min(24, Math.max(1, Number(value.lineThickness ?? 2))),
+    dotSize: Math.min(30, Math.max(1, Number(value.dotSize ?? 3))),
+    sparkSize: Math.min(20, Math.max(0.5, Number(value.sparkSize ?? 2))),
+    sparkSpeed: Math.min(5, Math.max(0.2, Number(value.sparkSpeed ?? 1))),
+    particleOrigin: value.particleOrigin === 'center' ? 'center' : 'bottom',
+    particleCount: Math.min(1200, Math.max(20, Math.round(Number(value.particleCount ?? 120)))),
+    particleReactivity: Math.min(3, Math.max(0, Number(value.particleReactivity ?? 1))),
+    particleSpread: Math.min(1, Math.max(0.1, Number(value.particleSpread ?? 1))),
+    particleRandomSize: Boolean(value.particleRandomSize),
+    radialHalf: Boolean(value.radialHalf),
+    waveCount: Math.min(24, Math.max(1, Math.round(Number(value.waveCount ?? 4)))),
+    waveSpeed: Math.min(5, Math.max(0.2, Number(value.waveSpeed ?? 1))),
+    waveThickness: Math.min(24, Math.max(1, Number(value.waveThickness ?? 2))),
+    waveLife: Math.min(8, Math.max(0.4, Number(value.waveLife ?? 2.4))),
+    waveIntensity: Math.min(2, Math.max(0.1, Number(value.waveIntensity ?? 1))),
+    waveRadius: Math.min(400, Math.max(2, Number(value.waveRadius ?? 20))),
+    glowEnabled: Boolean(value.glowEnabled),
+    glowIntensity: Math.min(1, Math.max(0, Number(value.glowIntensity ?? 0.5))),
+    glowSpread: Math.min(60, Math.max(0, Number(value.glowSpread ?? 12))),
+    mirrorOffsetX: Math.min(600, Math.max(-600, Number(value.mirrorOffsetX ?? 0))),
+    mirrorOffsetY: Math.min(600, Math.max(-600, Number(value.mirrorOffsetY ?? 0))),
     ringThickness: Math.min(24, Math.max(1, Number(value.ringThickness ?? 3))),
     ringPulse: Math.min(2, Math.max(0, Number(value.ringPulse ?? 1))),
     gradientAngle: Math.min(360, Math.max(0, Number(value.gradientAngle ?? 135))),

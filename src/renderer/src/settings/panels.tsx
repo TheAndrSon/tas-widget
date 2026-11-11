@@ -50,7 +50,9 @@ export interface PanelProps {
 function MusicPreview(): JSX.Element {
   const snapshot = useMusicSnapshot()
   const title = snapshot?.title
-  const active = Boolean(title && snapshot?.status !== 'unavailable' && snapshot?.status !== 'closed')
+  const active = Boolean(
+    title && snapshot?.status !== 'unavailable' && snapshot?.status !== 'closed'
+  )
 
   return (
     <div className={`now-playing${active ? ' is-active' : ''}`}>
@@ -80,39 +82,40 @@ function MusicPreview(): JSX.Element {
 
 function VisualizerControls({
   value,
-  onChange
+  onChange,
+  allowedModes
 }: {
   value: VisualizerSettings
   onChange: (next: VisualizerSettings) => void
+  allowedModes?: VisualizerSettings['mode'][]
 }): JSX.Element {
   const set = (patch: Partial<VisualizerSettings>): void => onChange({ ...value, ...patch })
-  const palette = VISUALIZER_PALETTES.find((item) => item.value === value.palette)
+  const mode = value.mode
+  const spectrum = ['bars', 'radial', 'line', 'waveform', 'dots'].includes(mode)
+
   return (
     <>
       <Row label="Визуализация" hint="Фон или обводка, реагирующие на звук">
         <Segmented
-          value={value.mode}
-          options={VISUALIZER_MODES}
-          onChange={(mode) => set({ mode })}
+          value={mode}
+          options={
+            allowedModes
+              ? VISUALIZER_MODES.filter((item) => allowedModes.includes(item.value))
+              : VISUALIZER_MODES
+          }
+          onChange={(next) => set({ mode: next })}
         />
       </Row>
-      {value.mode !== 'off' && (
+
+      {mode !== 'off' && (
         <>
-          <Row label="Захват звука" hint="Отдельные окна в Windows пока используют системный микс">
-            <select
-              className="select"
-              value={value.source}
-              onChange={(event) => set({ source: event.target.value as VisualizerSettings['source'] })}
-            >
-              <option value="system">Вся система</option>
-              <option value="window">Одно окно</option>
-              <option value="multi">Несколько окон</option>
-            </select>
-          </Row>
           <Row label="Палитра">
             <Segmented
               value={value.palette}
-              options={VISUALIZER_PALETTES.map((item) => ({ value: item.value, label: item.label }))}
+              options={VISUALIZER_PALETTES.map((item) => ({
+                value: item.value,
+                label: item.label
+              }))}
               onChange={(next) => {
                 const preset = VISUALIZER_PALETTES.find((item) => item.value === next)
                 set({
@@ -123,96 +126,26 @@ function VisualizerControls({
               }}
             />
           </Row>
-          {value.mode === 'mirror' && (
-            <Row label="Ось зеркала" hint="От начала или от конца шкалы">
-              <Segmented
-                value={value.mirrorOrigin}
-                options={[
-                  { value: 'start', label: 'От начала' },
-                  { value: 'end', label: 'От конца' }
-                ]}
-                onChange={(mirrorOrigin) => set({ mirrorOrigin })}
-              />
-            </Row>
-          )}
-          {(value.palette === 'gradient' || value.palette === 'custom') && (
-            <Row label="Градиент столбцов" hint="Цвет низа и цвет верха">
+
+          {value.palette === 'custom' && (
+            <Row label="Цвета" hint="Низ и верх градиента">
               <div className="color-pair">
                 <input
                   type="color"
                   className="color-input"
                   value={value.color1}
                   onChange={(event) => set({ color1: event.target.value })}
-                  title="Цвет снизу"
                 />
                 <input
                   type="color"
                   className="color-input"
                   value={value.color2}
                   onChange={(event) => set({ color2: event.target.value })}
-                  title="Цвет сверху"
                 />
               </div>
             </Row>
           )}
-          {value.palette === 'gradient' && (
-            <>
-              <Row label="Угол градиента">
-                <Slider
-                  min={0}
-                  max={360}
-                  step={1}
-                  value={value.gradientAngle}
-                  onChange={(gradientAngle) => set({ gradientAngle })}
-                  format={(item) => `${item}°`}
-                />
-              </Row>
-              <Row label="Масштаб перелива">
-                <Slider
-                  min={0.2}
-                  max={5}
-                  step={0.1}
-                  value={value.gradientScale}
-                  onChange={(gradientScale) => set({ gradientScale })}
-                  format={(item) => `${item.toFixed(1)}×`}
-                />
-              </Row>
-              <Row label="Скорость перелива">
-                <Slider
-                  min={0.2}
-                  max={5}
-                  step={0.1}
-                  value={value.gradientSpeed}
-                  onChange={(gradientSpeed) => set({ gradientSpeed })}
-                  format={(item) => `${item.toFixed(1)}×`}
-                />
-              </Row>
-            </>
-          )}
-          {value.mode === 'ring' && (
-            <>
-              <Row label="Толщина колец">
-                <Slider
-                  min={1}
-                  max={18}
-                  step={1}
-                  value={value.ringThickness}
-                  onChange={(ringThickness) => set({ ringThickness })}
-                  format={(item) => `${item}px`}
-                />
-              </Row>
-              <Row label="Пульсация">
-                <Slider
-                  min={0}
-                  max={2}
-                  step={0.05}
-                  value={value.ringPulse}
-                  onChange={(ringPulse) => set({ ringPulse })}
-                  format={(item) => `${Math.round(item * 100)}%`}
-                />
-              </Row>
-            </>
-          )}
+
           <Row label="Интенсивность">
             <Slider
               min={0.2}
@@ -223,9 +156,10 @@ function VisualizerControls({
               format={(item) => `${Math.round(item * 100)}%`}
             />
           </Row>
-          <Row label="Макс. высота" hint="Ограничение высоты столбиков и лучей">
+
+          <Row label="Макс. высота">
             <Slider
-              min={20}
+              min={10}
               max={100}
               step={1}
               value={value.maxHeight}
@@ -233,52 +167,238 @@ function VisualizerControls({
               format={(item) => `${item}%`}
             />
           </Row>
-          <Row label="Количество столбиков" hint="Логарифмическая шкала: 12–1200, по умолчанию 64">
-            <Slider
-              min={0}
-              max={100}
-              step={1}
-              value={Math.round(
-                (Math.log(Math.max(12, value.bars) / 12) / Math.log(1200 / 12)) * 100
-              )}
-              onChange={(position) =>
-                set({
-                  bars: Math.max(
-                    12,
-                    Math.min(1200, Math.round(12 * Math.pow(1200 / 12, position / 100)))
-                  )
-                })
-              }
-              format={() => String(value.bars)}
-            />
-          </Row>
-          {['bars', 'mirror', 'radial', 'line', 'dots'].includes(value.mode) && (
+
+          {['bars', 'radial', 'line', 'waveform', 'dots'].includes(mode) && (
+            <Row label="Количество" hint="12–3600 элементов">
+              <Slider
+                min={12}
+                max={3600}
+                step={1}
+                value={value.bars}
+                onChange={(bars) => set({ bars })}
+                format={(item) => String(item)}
+              />
+            </Row>
+          )}
+
+          {mode === 'bars' && (
             <>
-              <Row label="Частоты" hint="Диапазон анализа, как в эквалайзерах Rainmeter">
-                <div className="border-controls">
-                  <Slider
-                    min={20}
-                    max={16000}
-                    step={10}
-                    value={value.freqMin}
-                    onChange={(freqMin) =>
-                      set({ freqMin, freqMax: Math.max(freqMin + 100, value.freqMax) })
-                    }
-                    format={(item) => `${item} Гц`}
-                  />
-                  <Slider
-                    min={100}
-                    max={22000}
-                    step={100}
-                    value={value.freqMax}
-                    onChange={(freqMax) =>
-                      set({ freqMax: Math.max(value.freqMin + 100, freqMax) })
-                    }
-                    format={(item) => `${item} Гц`}
-                  />
-                </div>
+              <Row label="Форма столбиков">
+                <Segmented
+                  value={value.barShape}
+                  options={[
+                    { value: 'rounded', label: 'Закруглённые' },
+                    { value: 'rect', label: 'Прямоугольные' }
+                  ]}
+                  onChange={(barShape) => set({ barShape })}
+                />
               </Row>
-              <Row label="Шкала частот">
+              <Row label="Толщина столбика">
+                <Slider
+                  min={1}
+                  max={60}
+                  step={1}
+                  value={value.barThickness}
+                  onChange={(barThickness) => set({ barThickness })}
+                  format={(item) => `${item}px`}
+                />
+              </Row>
+              <Row label="Зазор">
+                <Slider
+                  min={0}
+                  max={40}
+                  step={1}
+                  value={value.barGap}
+                  onChange={(barGap) => set({ barGap })}
+                  format={(item) => `${item}px`}
+                />
+              </Row>
+            </>
+          )}
+
+          {mode === 'radial' && (
+            <>
+              <Row label="Половина спектра" hint="Отражение дополнит вторую половину">
+                <Toggle checked={value.radialHalf} onChange={(radialHalf) => set({ radialHalf })} />
+              </Row>
+              <Row label="Толщина лучей">
+                <Slider
+                  min={1}
+                  max={24}
+                  step={0.5}
+                  value={value.barThickness}
+                  onChange={(barThickness) => set({ barThickness })}
+                  format={(item) => `${item}px`}
+                />
+              </Row>
+            </>
+          )}
+
+          {mode === 'particles' && (
+            <>
+              <Row label="Источник частиц">
+                <Segmented
+                  value={value.particleOrigin}
+                  options={[
+                    { value: 'bottom', label: 'Снизу' },
+                    { value: 'center', label: 'Из центра' }
+                  ]}
+                  onChange={(particleOrigin) => set({ particleOrigin })}
+                />
+              </Row>
+              <Row label="Количество частиц">
+                <Slider
+                  min={20}
+                  max={1200}
+                  step={10}
+                  value={value.particleCount}
+                  onChange={(particleCount) => set({ particleCount })}
+                  format={(item) => String(item)}
+                />
+              </Row>
+              <Row label="Реакция на музыку">
+                <Slider
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  value={value.particleReactivity}
+                  onChange={(particleReactivity) => set({ particleReactivity })}
+                  format={(item) => `${item.toFixed(2)}×`}
+                />
+              </Row>
+              <Row label="Распределение по области">
+                <Slider
+                  min={0.1}
+                  max={1}
+                  step={0.01}
+                  value={value.particleSpread}
+                  onChange={(particleSpread) => set({ particleSpread })}
+                  format={(item) => `${Math.round(item * 100)}%`}
+                />
+              </Row>
+              <Row label="Размер частиц">
+                <Slider
+                  min={0.5}
+                  max={20}
+                  step={0.5}
+                  value={value.sparkSize}
+                  onChange={(sparkSize) => set({ sparkSize })}
+                  format={(item) => `${item}px`}
+                />
+              </Row>
+              <Row label="Случайный размер">
+                <Toggle
+                  checked={value.particleRandomSize}
+                  onChange={(particleRandomSize) => set({ particleRandomSize })}
+                />
+              </Row>
+              <Row label="Базовая скорость">
+                <Slider
+                  min={0.2}
+                  max={5}
+                  step={0.05}
+                  value={value.sparkSpeed}
+                  onChange={(sparkSpeed) => set({ sparkSpeed })}
+                  format={(item) => `${item.toFixed(1)}×`}
+                />
+              </Row>
+            </>
+          )}
+
+          {(mode === 'bars' || mode === 'dots' || mode === 'particles' || mode === 'line') && (
+            <Row label="Отражение" hint="Зеркальная копия относительно оси">
+              <Toggle checked={value.mirror} onChange={(mirror) => set({ mirror })} />
+            </Row>
+          )}
+
+          {mode === 'radial' && (
+            <Row label="Отражение" hint="Лучи с противоположной стороны">
+              <Toggle checked={value.mirror} onChange={(mirror) => set({ mirror })} />
+            </Row>
+          )}
+
+          {value.mirror && (
+            <>
+              <Row label="Сдвиг отражения X">
+                <Slider
+                  min={-600}
+                  max={600}
+                  step={1}
+                  value={value.mirrorOffsetX}
+                  onChange={(mirrorOffsetX) => set({ mirrorOffsetX })}
+                  format={(item) => `${item}px`}
+                />
+              </Row>
+              <Row label="Сдвиг отражения Y">
+                <Slider
+                  min={-600}
+                  max={600}
+                  step={1}
+                  value={value.mirrorOffsetY}
+                  onChange={(mirrorOffsetY) => set({ mirrorOffsetY })}
+                  format={(item) => `${item}px`}
+                />
+              </Row>
+            </>
+          )}
+
+          <Row label="Свечение визуализации">
+            <Toggle checked={value.glowEnabled} onChange={(glowEnabled) => set({ glowEnabled })} />
+          </Row>
+
+          {value.glowEnabled && (
+            <>
+              <Row label="Интенсивность свечения">
+                <Slider
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={value.glowIntensity}
+                  onChange={(glowIntensity) => set({ glowIntensity })}
+                  format={(item) => `${Math.round(item * 100)}%`}
+                />
+              </Row>
+              <Row label="Рассеивание свечения">
+                <Slider
+                  min={0}
+                  max={60}
+                  step={1}
+                  value={value.glowSpread}
+                  onChange={(glowSpread) => set({ glowSpread })}
+                  format={(item) => `${item}px`}
+                />
+              </Row>
+            </>
+          )}
+
+          {spectrum && (
+            <>
+              <Row label="Частоты" hint="Диапазон анализа, Гц">
+                <Slider
+                  min={20}
+                  max={16000}
+                  step={10}
+                  value={value.freqMin}
+                  onChange={(freqMin) =>
+                    set({ freqMin, freqMax: Math.max(freqMin + 100, value.freqMax) })
+                  }
+                  format={(item) => `${item}`}
+                />
+              </Row>
+              <Row label="Верхняя частота">
+                <Slider
+                  min={100}
+                  max={22000}
+                  step={100}
+                  value={value.freqMax}
+                  onChange={(freqMax) => set({ freqMax: Math.max(value.freqMin + 100, freqMax) })}
+                  format={(item) => `${item}`}
+                />
+              </Row>
+              <Row
+                label="Шкала частот"
+                hint="Логарифм сжимает высокие частоты и даёт больше деталей в басе; линейно делит диапазон поровну"
+              >
                 <Segmented
                   value={value.freqScale}
                   options={[
@@ -290,12 +410,6 @@ function VisualizerControls({
               </Row>
             </>
           )}
-          <div className="style-note">
-            {value.source === 'system'
-              ? 'Захват системного loopback: подходит для музыки, видео и браузера.'
-              : 'Windows отдаёт только общий микс. Выбор конкретного окна — следующий этап: нужен отдельный WASAPI-хелпер.'}
-          </div>
-          {palette && <div className="style-note">Палитра «{palette.label}»</div>}
         </>
       )}
     </>
@@ -331,7 +445,9 @@ function BirthDateInput({
     const m = Number(nextMonth)
     const y = Number(nextYear)
     if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 1900 && y <= 2100) {
-      onChange(`${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`)
+      onChange(
+        `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+      )
     }
   }
 
@@ -457,7 +573,10 @@ function WeatherPanel({ instance, patchSettings }: PanelProps): JSX.Element {
         </select>
       </Row>
       {weather.provider === 'yandex' && (
-        <Row label="Ключ Яндекс.Погоды" hint="Хранится локально; без ключа используется резервный источник">
+        <Row
+          label="Ключ Яндекс.Погоды"
+          hint="Хранится локально; без ключа используется резервный источник"
+        >
           <input
             className="text-input"
             type="password"
@@ -467,7 +586,10 @@ function WeatherPanel({ instance, patchSettings }: PanelProps): JSX.Element {
           />
         </Row>
       )}
-      <Row label="Атмосфера по времени суток" hint="Рассвет, солнце, закат, луна и звёзды поверх фона">
+      <Row
+        label="Атмосфера по времени суток"
+        hint="Рассвет, солнце, закат, луна и звёзды поверх фона"
+      >
         <Toggle
           checked={weather.atmosphere}
           onChange={(value) => patchSettings({ atmosphere: value })}
@@ -496,7 +618,10 @@ function WeatherPanel({ instance, patchSettings }: PanelProps): JSX.Element {
         />
       </Row>
       <Row label="Название города">
-        <Toggle checked={weather.showCity} onChange={(value) => patchSettings({ showCity: value })} />
+        <Toggle
+          checked={weather.showCity}
+          onChange={(value) => patchSettings({ showCity: value })}
+        />
       </Row>
       <Row label="Ощущается как">
         <Toggle
@@ -505,7 +630,10 @@ function WeatherPanel({ instance, patchSettings }: PanelProps): JSX.Element {
         />
       </Row>
       <Row label="Ветер">
-        <Toggle checked={weather.showWind} onChange={(value) => patchSettings({ showWind: value })} />
+        <Toggle
+          checked={weather.showWind}
+          onChange={(value) => patchSettings({ showWind: value })}
+        />
       </Row>
       <Row label="Влажность">
         <Toggle
@@ -551,6 +679,7 @@ function MusicPanel({ instance, patchSettings }: PanelProps): JSX.Element {
         <VisualizerControls
           value={music.visualizer}
           onChange={(visualizer) => patchSettings({ visualizer })}
+          allowedModes={['off', 'bars', 'dots']}
         />
         <Row
           label="Управление в заблокированном виде"
@@ -608,8 +737,8 @@ function ClockPanel({ instance, patchSettings }: PanelProps): JSX.Element {
         </Row>
       )}
       <div className="style-note">
-        Кегль, шрифт, обводка, тень и паттерн текста — в «Стиль и фон».
-        Окно подстраивается под содержимое с запасом по самой широкой цифре.
+        Кегль, шрифт, обводка, тень и паттерн текста — в «Стиль и фон». Окно подстраивается под
+        содержимое с запасом по самой широкой цифре.
       </div>
     </Section>
   )
@@ -689,8 +818,8 @@ function WeekdayPanel({ instance, patchSettings }: PanelProps): JSX.Element {
         />
       </Row>
       <div className="style-note">
-        Кегль один на виджет; вторичная строка и номер недели масштабируются
-        пропорционально. Окно резервирует место под самый длинный день и дату.
+        Кегль один на виджет; вторичная строка и номер недели масштабируются пропорционально. Окно
+        резервирует место под самый длинный день и дату.
       </div>
     </Section>
   )
@@ -833,14 +962,12 @@ function AstroPanel({ instance, state, patchSettings }: PanelProps): JSX.Element
                     })
                   }
                 />
-                <span className="astro-panel__result">
-                  — {ZODIAC[checked].name}
-                </span>
+                <span className="astro-panel__result">— {ZODIAC[checked].name}</span>
               </div>
             </Row>
             <div className="style-note">
-              {String(astro.checkDay).padStart(2, '0')}.{String(astro.checkMonth).padStart(2, '0')} —{' '}
-              {ZODIAC[checked].name}, {ZODIAC[checked].dates}
+              {String(astro.checkDay).padStart(2, '0')}.{String(astro.checkMonth).padStart(2, '0')}{' '}
+              — {ZODIAC[checked].name}, {ZODIAC[checked].dates}
             </div>
           </>
         )}
@@ -852,7 +979,10 @@ function AstroPanel({ instance, state, patchSettings }: PanelProps): JSX.Element
         )}
 
         <Row label="Фаза Луны">
-          <Toggle checked={astro.showMoon} onChange={(value) => patchSettings({ showMoon: value })} />
+          <Toggle
+            checked={astro.showMoon}
+            onChange={(value) => patchSettings({ showMoon: value })}
+          />
         </Row>
         <Row label="Стихия и планета">
           <Toggle
@@ -1051,8 +1181,8 @@ function TarotPanel({ instance, state, patchSettings }: PanelProps): JSX.Element
           )}
         </div>
         <div className="style-note">
-          Создайте колоду, выберите картинку и при желании своё название и значения для
-          каждой из 78 карт — колода сохранится как пресет.
+          Создайте колоду, выберите картинку и при желании своё название и значения для каждой из 78
+          карт — колода сохранится как пресет.
         </div>
       </Section>
 
@@ -1184,7 +1314,12 @@ function DicePanel({ instance, patchSettings }: PanelProps): JSX.Element {
               <button
                 type="button"
                 className="btn btn--small"
-                onClick={() => setCrop({ key: keyName, asset: { id: value.imageId, name: label, file: '', width: 0, height: 0 } })}
+                onClick={() =>
+                  setCrop({
+                    key: keyName,
+                    asset: { id: value.imageId, name: label, file: '', width: 0, height: 0 }
+                  })
+                }
               >
                 Кадрировать
               </button>
@@ -1305,7 +1440,9 @@ function DicePanel({ instance, patchSettings }: PanelProps): JSX.Element {
           asset={crop.asset}
           initial={dice[crop.key]?.crop ?? { x: 50, y: 50, zoom: 1 }}
           aspect={1}
-          title={crop.key === 'diceSkin' ? 'Скин кубика' : crop.key === 'coinHeads' ? 'Орёл' : 'Решка'}
+          title={
+            crop.key === 'diceSkin' ? 'Скин кубика' : crop.key === 'coinHeads' ? 'Орёл' : 'Решка'
+          }
           onSave={saveCrop}
           onClose={() => setCrop(null)}
         />
@@ -1328,6 +1465,7 @@ function EqualizerPanel({ instance, patchSettings }: PanelProps): JSX.Element {
       <VisualizerControls
         value={eq.visualizer}
         onChange={(visualizer) => patchSettings({ visualizer })}
+        allowedModes={['off', 'radial', 'particles']}
       />
       <Row label="Масштаб визуализации" hint="50–500%; размер окна меняется вместе с визуализацией">
         <Slider
@@ -1339,16 +1477,11 @@ function EqualizerPanel({ instance, patchSettings }: PanelProps): JSX.Element {
           format={(value) => `${Math.round(value * 100)}%`}
         />
       </Row>
-      <Row
-        label="Монитор"
-        hint="Эквалайзер не будет перескакивать на другой монитор даже частично"
-      >
+      <Row label="Монитор" hint="Эквалайзер не будет перескакивать на другой монитор даже частично">
         <select
           className="select"
           value={eq.displayId ?? 0}
-          onChange={(event) =>
-            patchSettings({ displayId: Number(event.target.value) || null })
-          }
+          onChange={(event) => patchSettings({ displayId: Number(event.target.value) || null })}
         >
           <option value={0}>Текущий</option>
           {displays.map((display) => (
@@ -1389,35 +1522,45 @@ function EqualizerPanel({ instance, patchSettings }: PanelProps): JSX.Element {
       )}
       <Row label="Отражение">
         <div className="inline-control">
-          <Toggle
-            checked={eq.mirrorX}
-            onChange={(mirrorX) => patchSettings({ mirrorX })}
-          />
+          <Toggle checked={eq.mirrorX} onChange={(mirrorX) => patchSettings({ mirrorX })} />
           <span className="row__hint">по горизонтали</span>
         </div>
       </Row>
       <Row label="Отражение">
         <div className="inline-control">
-          <Toggle
-            checked={eq.mirrorY}
-            onChange={(mirrorY) => patchSettings({ mirrorY })}
-          />
+          <Toggle checked={eq.mirrorY} onChange={(mirrorY) => patchSettings({ mirrorY })} />
           <span className="row__hint">по вертикали</span>
         </div>
       </Row>
       {eq.dock === 'free' && (
         <Row label="Край монитора" hint="Центрирует окно у выбранной грани">
           <div className="slot-editor__actions">
-            <button type="button" className="btn btn--small" onClick={() => window.widgets.alignEqualizer(instance.id, 'top')}>
+            <button
+              type="button"
+              className="btn btn--small"
+              onClick={() => window.widgets.alignEqualizer(instance.id, 'top')}
+            >
               Сверху
             </button>
-            <button type="button" className="btn btn--small" onClick={() => window.widgets.alignEqualizer(instance.id, 'bottom')}>
+            <button
+              type="button"
+              className="btn btn--small"
+              onClick={() => window.widgets.alignEqualizer(instance.id, 'bottom')}
+            >
               Снизу
             </button>
-            <button type="button" className="btn btn--small" onClick={() => window.widgets.alignEqualizer(instance.id, 'left')}>
+            <button
+              type="button"
+              className="btn btn--small"
+              onClick={() => window.widgets.alignEqualizer(instance.id, 'left')}
+            >
               Слева
             </button>
-            <button type="button" className="btn btn--small" onClick={() => window.widgets.alignEqualizer(instance.id, 'right')}>
+            <button
+              type="button"
+              className="btn btn--small"
+              onClick={() => window.widgets.alignEqualizer(instance.id, 'right')}
+            >
               Справа
             </button>
           </div>
