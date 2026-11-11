@@ -2,8 +2,12 @@ import os from 'node:os'
 import type { SystemResult, SystemSnapshot } from '../shared/types'
 
 interface SystemInformation {
-  graphics(): Promise<{ controllers?: Array<{ model?: string; utilizationGpu?: number }> }>
+  graphics(): Promise<{
+    controllers?: Array<{ model?: string; utilizationGpu?: number; temperatureGpu?: number }>
+  }>
   networkStats(): Promise<Array<{ rx_sec?: number; tx_sec?: number; operstate?: string }>>
+  cpuTemperature(): Promise<{ main?: number | null }>
+  fsSize(): Promise<Array<{ mount?: string; size?: number; used?: number }>>
 }
 
 export class SystemMonitorService {
@@ -11,6 +15,11 @@ export class SystemMonitorService {
   private si: SystemInformation | null | undefined = undefined
   private gpuName: string | null = null
   private gpuLoad: number | null = null
+  private gpuTemp: number | null = null
+  private cpuTemp: number | null = null
+  private disks: SystemSnapshot['disks'] = []
+  private tempAt = 0
+  private disksAt = 0
   private cache: { at: number; data: SystemSnapshot } | null = null
   private gpuAt = 0
   private netAt = 0
@@ -63,9 +72,41 @@ export class SystemMonitorService {
           this.gpuName = controller?.model ?? null
           this.gpuLoad =
             typeof controller?.utilizationGpu === 'number' ? controller.utilizationGpu : null
+          this.gpuTemp =
+            typeof controller?.temperatureGpu === 'number'
+              ? Math.round(controller.temperatureGpu)
+              : null
         } catch {
           this.gpuName = null
           this.gpuLoad = null
+          this.gpuTemp = null
+        }
+      }
+      if (si && Date.now() - this.tempAt > 15000) {
+        this.tempAt = Date.now()
+        try {
+          const temps = await si.cpuTemperature()
+          this.cpuTemp =
+            typeof temps.main === 'number' && temps.main > 0 ? Math.round(temps.main) : null
+        } catch {
+          this.cpuTemp = null
+        }
+      }
+      if (si && Date.now() - this.disksAt > 15000) {
+        this.disksAt = Date.now()
+        try {
+          const list = await si.fsSize()
+          this.disks = list
+            .filter((item) => /^[A-Za-z]:/.test(item.mount ?? '') && (item.size ?? 0) > 0)
+            .map((item) => ({
+              mount: item.mount ?? '',
+              size: item.size ?? 0,
+              used: item.used ?? 0
+            }))
+            .sort((a, b) => a.mount.localeCompare(b.mount))
+            .slice(0, 5)
+        } catch {
+          this.disks = []
         }
       }
       if (si && Date.now() - this.netAt > 2000) {
@@ -82,12 +123,15 @@ export class SystemMonitorService {
 
       const data: SystemSnapshot = {
         cpu: Math.round(cpu),
+        cpuTemp: this.cpuTemp,
         ramUsed: Math.round(used / 1024 / 1024),
         ramTotal: Math.round(total / 1024 / 1024),
         gpu: this.gpuName,
         gpuLoad: this.gpuLoad === null ? null : Math.round(this.gpuLoad),
+        gpuTemp: this.gpuTemp,
         netRx: Math.round(this.netRx),
         netTx: Math.round(this.netTx),
+        disks: this.disks,
         fetchedAt: Date.now()
       }
       this.cache = { at: Date.now(), data }

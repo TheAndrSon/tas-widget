@@ -1885,6 +1885,9 @@ function SystemPanel({ instance, patchSettings }: PanelProps): JSX.Element {
           onChange={(showNetwork) => patchSettings({ showNetwork })}
         />
       </Row>
+      <Row label="Диски" hint="Заполнение локальных дисков">
+        <Toggle checked={system.showDisks} onChange={(showDisks) => patchSettings({ showDisks })} />
+      </Row>
     </Section>
   )
 }

@@ -13,7 +13,7 @@ import {
 } from '../shared/defaults'
 import { DEFAULT_BACKGROUND_IMAGE_ID, DEFAULT_ENABLED } from '../shared/default-design'
 import { deepMerge } from '../shared/merge'
-import { simsDo } from '../shared/sims'
+import { decayMood, simsDo } from '../shared/sims'
 import { normalizeSlot, normalizeStyle } from '../shared/presets'
 import type {
   GeneralSettings,
@@ -487,6 +487,25 @@ export class Store {
     this.state.sims[groupId] = next
     this.scheduleSave()
     return next
+  }
+
+  tickSims(): boolean {
+    let changed = false
+    for (const [groupId, mood] of Object.entries(this.state.sims)) {
+      const hard = this.state.widgets.some(
+        (widget) =>
+          widget.type === 'sims' &&
+          (widget.settings as { groupId?: string }).groupId === groupId &&
+          (widget.settings as { difficulty?: string }).difficulty === 'hard'
+      )
+      const next = decayMood(mood, Date.now(), hard ? 'hard' : 'classic')
+      if (next !== mood) {
+        this.state.sims[groupId] = next
+        changed = true
+      }
+    }
+    if (changed) this.scheduleSave()
+    return changed
   }
 
   remove(id: string): boolean {

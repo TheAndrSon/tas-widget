@@ -485,6 +485,7 @@ export interface SystemSettings {
   showRam: boolean
   showGpu: boolean
   showNetwork: boolean
+  showDisks: boolean
 }
 
 export interface WidgetSettingsMap {
@@ -837,14 +838,23 @@ export type TwitchResult =
   | { ok: true; channels: TwitchChannelInfo[]; configured: boolean; fetchedAt: number }
   | { ok: false; error: string; configured: boolean }
 
+export interface SystemDisk {
+  mount: string
+  size: number
+  used: number
+}
+
 export interface SystemSnapshot {
   cpu: number
+  cpuTemp: number | null
   ramUsed: number
   ramTotal: number
   gpu: string | null
   gpuLoad: number | null
+  gpuTemp: number | null
   netRx: number
   netTx: number
+  disks: SystemDisk[]
   fetchedAt: number
 }
 

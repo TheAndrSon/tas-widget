@@ -83,6 +83,7 @@ let tray: TrayController
 let nativeLayer: NativeLayer
 let cursorTimer: NodeJS.Timeout | null = null
 let layerTimer: NodeJS.Timeout | null = null
+let simsTimer: NodeJS.Timeout | null = null
 
 function refresh(): void {
   broadcastToAll('state:changed', store.state)
@@ -255,8 +256,7 @@ function bootstrap(): void {
   cursorTimer = setInterval(() => {
     const targets = store.state.widgets.filter(
       (widget) =>
-        widget.enabled &&
-        (widget.type === 'calendar' || widget.style?.cursorEffect !== 'none')
+        widget.enabled && (widget.type === 'calendar' || widget.style?.cursorEffect !== 'none')
     )
     if (targets.length === 0) return
     const point = screen.getCursorScreenPoint()
@@ -265,6 +265,14 @@ function bootstrap(): void {
       if (win) win.webContents.send('cursor:position', point)
     }
   }, 120)
+
+  // Пламбоб: просадка потребностей, штрафы, бонусы и награды раз в 15 минут.
+  simsTimer = setInterval(
+    () => {
+      if (store.tickSims()) refresh()
+    },
+    15 * 60 * 1000
+  )
 
   globalShortcut.register(GRID_HOTKEY, () => widgets.toggleGrid())
 
@@ -301,6 +309,7 @@ if (!gotLock) {
   app.on('before-quit', () => {
     if (cursorTimer) clearInterval(cursorTimer)
     if (layerTimer) clearInterval(layerTimer)
+    if (simsTimer) clearInterval(simsTimer)
     widgets?.setQuitting()
     globalShortcut.unregisterAll()
     music?.stop()
