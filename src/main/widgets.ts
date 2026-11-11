@@ -319,7 +319,7 @@ export class WidgetManager {
     if (target.type === 'weather') {
       position = this.defaultPosition('weather')
     } else if (target.type === 'equalizer') {
-      position = this.defaultEqualizerPosition(bounds.width, bounds.height)
+      position = this.defaultEqualizerPosition(bounds.width, bounds.height, target.instanceId)
     } else {
       position = this.defaultPosition(target.type)
     }
@@ -504,10 +504,16 @@ export class WidgetManager {
     return win
   }
 
-  private defaultEqualizerPosition(width: number, height: number): { x: number; y: number } {
+  private defaultEqualizerPosition(
+    width: number,
+    height: number,
+    excludeId?: string
+  ): { x: number; y: number } {
     const area = screen.getPrimaryDisplay().workArea
     const rows = Math.max(1, Math.floor((area.height - 2 * MARGIN + GAP) / (height + GAP)))
-    const count = [...this.equalizerWins.values()].filter(win => !win.isDestroyed()).length
+    const count = [...this.equalizerWins.entries()].filter(
+      ([id, win]) => id !== excludeId && !win.isDestroyed()
+    ).length
     const column = Math.floor(count / rows)
     const row = count % rows
     return {
