@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, ipcMain, screen } from 'electron'
 import type {
   City,
+  EqualizerInstancePatch,
   MusicAction,
   SettingsPatch,
   WeatherInstancePatch,
@@ -31,7 +32,6 @@ export function registerIpc({ store, manager, monitor, music, weather }: Deps): 
     const previous = store.state.system.intervalMs
     const next = store.patch(patch)
     if (next.system.intervalMs !== previous) monitor.restart(next.system.intervalMs)
-    if (patch.equalizer) manager.applyEqualizerLayout()
     manager.broadcast('settings:changed', next)
     return next
   })
@@ -88,10 +88,46 @@ export function registerIpc({ store, manager, monitor, music, weather }: Deps): 
     }))
   )
 
-  ipcMain.handle('equalizer:align', (_event, edge: unknown) => {
-    if (edge === 'top' || edge === 'bottom' || edge === 'left' || edge === 'right') {
-      manager.alignEqualizer(edge)
-    }
+  ipcMain.handle('equalizer:add', () => {
+    const instance = store.addEqualizer()
+    if (!instance) return null
+    manager.openEqualizer(instance)
+    manager.broadcast('settings:changed', store.state)
+    return instance
+  })
+
+  ipcMain.handle('equalizer:remove', (_event, id: unknown) => {
+    if (typeof id !== 'string') return false
+    manager.closeEqualizer(id)
+    const removed = store.removeEqualizer(id)
+    if (removed) manager.broadcast('settings:changed', store.state)
+    return removed
+  })
+
+  ipcMain.handle('equalizer:open', (_event, id: unknown) => {
+    if (typeof id !== 'string') return false
+    const instance = store.equalizerById(id)
+    if (!instance) return false
+    manager.openEqualizer(instance)
+    return true
+  })
+
+  ipcMain.handle('equalizer:close', (_event, id: unknown) => {
+    if (typeof id !== 'string') return false
+    manager.closeEqualizer(id)
+    return true
+  })
+
+  ipcMain.handle('equalizer:patch', (_event, id: unknown, patch: unknown) => {
+    if (typeof id !== 'string' || !patch || typeof patch !== 'object') return null
+    const instance = store.updateEqualizer(id, patch as EqualizerInstancePatch)
+    if (instance) manager.broadcast('settings:changed', store.state)
+    return instance
+  })
+
+  ipcMain.handle('equalizer:center', (_event, id: unknown) => {
+    if (typeof id !== 'string') return false
+    manager.centerEqualizer(id)
     return true
   })
 
@@ -159,10 +195,18 @@ export function registerIpc({ store, manager, monitor, music, weather }: Deps): 
       ...(info
         ? [
             {
-              label: info.instanceId ? 'Скрыть город' : 'Скрыть виджет',
+              label: info.instanceId
+                ? info.type === 'equalizer'
+                  ? 'Скрыть эквалайзер'
+                  : 'Скрыть город'
+                : 'Скрыть виджет',
               click: () => {
-                if (info.instanceId) manager.closeWeather(info.instanceId)
-                else manager.close(info.type)
+                if (info.instanceId) {
+                  if (info.type === 'equalizer') manager.closeEqualizer(info.instanceId)
+                  else manager.closeWeather(info.instanceId)
+                } else {
+                  manager.close(info.type)
+                }
               }
             } as const
           ]

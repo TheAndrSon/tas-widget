@@ -28,7 +28,7 @@ export class AppTray {
 
   private menu(): Menu {
     const items = readyWidgetIds()
-      .filter(id => id !== 'weather')
+      .filter(id => id !== 'weather' && id !== 'equalizer')
       .map(id => ({
         label: WIDGETS[id].title,
         type: 'checkbox' as const,
@@ -50,9 +50,24 @@ export class AppTray {
       { label: 'Настройки погоды…', click: () => openSettingsWindow('weather') }
     ]
 
+    const equalizers = this.store.state.equalizer.instances.map((instance, index) => ({
+      label: `Эквалайзер ${index + 1}`,
+      type: 'checkbox' as const,
+      checked: this.manager.isEqualizerOpen(instance.id),
+      click: () => this.manager.toggleEqualizer(instance.id)
+    }))
+
+    const equalizerMenu = [
+      ...equalizers,
+      ...(equalizers.length > 0 ? [{ type: 'separator' as const }] : []),
+      { label: 'Добавить эквалайзер…', click: () => openSettingsWindow('equalizer') },
+      { label: 'Настройки эквалайзера…', click: () => openSettingsWindow('equalizer') }
+    ]
+
     return Menu.buildFromTemplate([
       ...items,
       { label: 'Погода', submenu: weatherMenu },
+      { label: 'Эквалайзер', submenu: equalizerMenu },
       { type: 'separator' },
       { label: 'Открыть все', click: () => this.manager.restore() },
       { label: 'Закрыть все', click: () => this.manager.closeAll() },

@@ -11,7 +11,7 @@ import type {
   WeatherSettings,
   WidgetId
 } from '@shared/types'
-import { MAX_WEATHER_CITIES } from '@shared/defaults'
+import { MAX_EQUALIZER_COPIES, MAX_WEATHER_CITIES } from '@shared/defaults'
 import { VISUALIZER_MODES, VISUALIZER_PALETTES } from '@shared/visualizer'
 import { WIDGETS } from '@shared/widgets'
 import { CityPicker } from './CityPicker'
@@ -258,8 +258,9 @@ function VisualizerControls({
   onChange: (next: VisualizerSettings) => void
 }): ReactElement {
   const set = (patch: Partial<VisualizerSettings>): void => onChange({ ...value, ...patch })
-  const palette = VISUALIZER_PALETTES.find(item => item.value === value.palette)
-  const spectrumModes = ['bars', 'mirror', 'radial', 'line', 'dots']
+  const mode = value.mode
+  const spectrum = ['bars', 'radial', 'line', 'dots'].includes(mode)
+  const hasAxis = ['bars', 'line', 'dots', 'sparks'].includes(mode)
 
   return (
     <>
@@ -268,34 +269,15 @@ function VisualizerControls({
           <span className="row__label">Визуализация</span>
           <span className="row__hint">Что рисовать под музыку</span>
         </div>
-        <Segmented value={value.mode} options={VISUALIZER_MODES} onChange={mode => set({ mode })} />
+        <Segmented value={mode} options={VISUALIZER_MODES} onChange={next => set({ mode: next })} />
       </div>
 
-      {value.mode !== 'off' && (
+      {mode !== 'off' && (
         <>
           <div className="row">
             <div className="row__text">
-              <span className="row__label">Захват звука</span>
-              <span className="row__hint">
-                Windows отдаёт системный микс; отдельное окно — следующий этап
-              </span>
-            </div>
-            <select
-              className="select"
-              value={value.source}
-              onChange={event =>
-                set({ source: event.target.value as VisualizerSettings['source'] })
-              }
-            >
-              <option value="system">Вся система</option>
-              <option value="window">Одно окно</option>
-              <option value="multi">Несколько окон</option>
-            </select>
-          </div>
-
-          <div className="row">
-            <div className="row__text">
               <span className="row__label">Палитра</span>
+              <span className="row__hint">Цвета низа и верха</span>
             </div>
             <Segmented
               value={value.palette}
@@ -314,10 +296,10 @@ function VisualizerControls({
             />
           </div>
 
-          {(value.palette === 'gradient' || value.palette === 'custom') && (
+          {value.palette === 'custom' && (
             <div className="row">
               <div className="row__text">
-                <span className="row__label">Цвета</span>
+                <span className="row__label">Свои цвета</span>
                 <span className="row__hint">Низ и верх градиента</span>
               </div>
               <div className="color-pair">
@@ -339,97 +321,6 @@ function VisualizerControls({
             </div>
           )}
 
-          {value.palette === 'gradient' && (
-            <>
-              <div className="row">
-                <div className="row__text">
-                  <span className="row__label">Угол градиента</span>
-                </div>
-                <Slider
-                  min={0}
-                  max={360}
-                  step={1}
-                  value={value.gradientAngle}
-                  onChange={gradientAngle => set({ gradientAngle })}
-                  format={item => `${item}°`}
-                />
-              </div>
-              <div className="row">
-                <div className="row__text">
-                  <span className="row__label">Масштаб перелива</span>
-                </div>
-                <Slider
-                  min={0.2}
-                  max={5}
-                  step={0.1}
-                  value={value.gradientScale}
-                  onChange={gradientScale => set({ gradientScale })}
-                  format={item => `${item.toFixed(1)}×`}
-                />
-              </div>
-              <div className="row">
-                <div className="row__text">
-                  <span className="row__label">Скорость перелива</span>
-                </div>
-                <Slider
-                  min={0.2}
-                  max={5}
-                  step={0.1}
-                  value={value.gradientSpeed}
-                  onChange={gradientSpeed => set({ gradientSpeed })}
-                  format={item => `${item.toFixed(1)}×`}
-                />
-              </div>
-            </>
-          )}
-
-          {value.mode === 'ring' && (
-            <>
-              <div className="row">
-                <div className="row__text">
-                  <span className="row__label">Толщина колец</span>
-                </div>
-                <Slider
-                  min={1}
-                  max={18}
-                  step={1}
-                  value={value.ringThickness}
-                  onChange={ringThickness => set({ ringThickness })}
-                  format={item => `${item}px`}
-                />
-              </div>
-              <div className="row">
-                <div className="row__text">
-                  <span className="row__label">Пульсация</span>
-                </div>
-                <Slider
-                  min={0}
-                  max={2}
-                  step={0.05}
-                  value={value.ringPulse}
-                  onChange={ringPulse => set({ ringPulse })}
-                  format={item => `${Math.round(item * 100)}%`}
-                />
-              </div>
-            </>
-          )}
-
-          {value.mode === 'mirror' && (
-            <div className="row">
-              <div className="row__text">
-                <span className="row__label">Ось зеркала</span>
-              </div>
-              <Segmented
-                value={value.mirrorOrigin}
-                options={[
-                  { value: 'start', label: 'От начала' },
-                  { value: 'end', label: 'От конца' }
-                ]}
-                onChange={mirrorOrigin => set({ mirrorOrigin })}
-              />
-            </div>
-          )}
-
           <div className="row">
             <div className="row__text">
               <span className="row__label">Интенсивность</span>
@@ -447,10 +338,10 @@ function VisualizerControls({
           <div className="row">
             <div className="row__text">
               <span className="row__label">Макс. высота</span>
-              <span className="row__hint">Ограничение высоты столбиков и лучей</span>
+              <span className="row__hint">Ограничение роста элементов</span>
             </div>
             <Slider
-              min={20}
+              min={10}
               max={100}
               step={1}
               value={value.maxHeight}
@@ -459,29 +350,258 @@ function VisualizerControls({
             />
           </div>
 
+          {['bars', 'radial', 'line', 'dots'].includes(mode) && (
+            <div className="row">
+              <div className="row__text">
+                <span className="row__label">Количество</span>
+                <span className="row__hint">12–256 элементов</span>
+              </div>
+              <Slider
+                min={12}
+                max={256}
+                step={1}
+                value={value.bars}
+                onChange={bars => set({ bars })}
+                format={item => String(item)}
+              />
+            </div>
+          )}
+
+          {mode === 'bars' && (
+            <>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Толщина столбика</span>
+                </div>
+                <Slider
+                  min={1}
+                  max={60}
+                  step={1}
+                  value={value.barThickness}
+                  onChange={barThickness => set({ barThickness })}
+                  format={item => `${item}px`}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Зазор</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={40}
+                  step={1}
+                  value={value.barGap}
+                  onChange={barGap => set({ barGap })}
+                  format={item => `${item}px`}
+                />
+              </div>
+            </>
+          )}
+
+          {mode === 'radial' && (
+            <div className="row">
+              <div className="row__text">
+                <span className="row__label">Толщина лучей</span>
+              </div>
+              <Slider
+                min={1}
+                max={24}
+                step={0.5}
+                value={value.barThickness}
+                onChange={barThickness => set({ barThickness })}
+                format={item => `${item}px`}
+              />
+            </div>
+          )}
+
+          {mode === 'line' && (
+            <div className="row">
+              <div className="row__text">
+                <span className="row__label">Толщина линии</span>
+              </div>
+              <Slider
+                min={1}
+                max={24}
+                step={0.5}
+                value={value.lineThickness}
+                onChange={lineThickness => set({ lineThickness })}
+                format={item => `${item}px`}
+              />
+            </div>
+          )}
+
+          {mode === 'dots' && (
+            <>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Размер точки</span>
+                </div>
+                <Slider
+                  min={1}
+                  max={30}
+                  step={0.5}
+                  value={value.dotSize}
+                  onChange={dotSize => set({ dotSize })}
+                  format={item => `${item}px`}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Зазор</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={40}
+                  step={1}
+                  value={value.barGap}
+                  onChange={barGap => set({ barGap })}
+                  format={item => `${item}px`}
+                />
+              </div>
+            </>
+          )}
+
+          {mode === 'sparks' && (
+            <>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Размер искр</span>
+                </div>
+                <Slider
+                  min={0.5}
+                  max={20}
+                  step={0.5}
+                  value={value.sparkSize}
+                  onChange={sparkSize => set({ sparkSize })}
+                  format={item => `${item}px`}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Скорость</span>
+                  <span className="row__hint">Ускоряются от громкости</span>
+                </div>
+                <Slider
+                  min={0.2}
+                  max={5}
+                  step={0.05}
+                  value={value.sparkSpeed}
+                  onChange={sparkSpeed => set({ sparkSpeed })}
+                  format={item => `${item.toFixed(1)}×`}
+                />
+              </div>
+            </>
+          )}
+
+          {mode === 'waves' && (
+            <>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Количество волн</span>
+                  <span className="row__hint">Сколько волн одновременно</span>
+                </div>
+                <Slider
+                  min={1}
+                  max={12}
+                  step={1}
+                  value={value.waveCount}
+                  onChange={waveCount => set({ waveCount })}
+                  format={item => String(item)}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Скорость волн</span>
+                </div>
+                <Slider
+                  min={0.2}
+                  max={5}
+                  step={0.05}
+                  value={value.waveSpeed}
+                  onChange={waveSpeed => set({ waveSpeed })}
+                  format={item => `${item.toFixed(1)}×`}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Толщина волн</span>
+                </div>
+                <Slider
+                  min={1}
+                  max={24}
+                  step={0.5}
+                  value={value.waveThickness}
+                  onChange={waveThickness => set({ waveThickness })}
+                  format={item => `${item}px`}
+                />
+              </div>
+            </>
+          )}
+
+          {hasAxis && (
+            <>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Отражение</span>
+                  <span className="row__hint">Зеркальная копия относительно оси</span>
+                </div>
+                <Switch checked={value.mirror} onChange={mirror => set({ mirror })} />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Положение оси</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={value.axis}
+                  onChange={axis => set({ axis })}
+                  format={item => `${Math.round(item * 100)}%`}
+                />
+              </div>
+            </>
+          )}
+
+          {mode === 'radial' && (
+            <div className="row">
+              <div className="row__text">
+                <span className="row__label">Отражение</span>
+                <span className="row__hint">Лучи с противоположной стороны</span>
+              </div>
+              <Switch checked={value.mirror} onChange={mirror => set({ mirror })} />
+            </div>
+          )}
+
           <div className="row">
             <div className="row__text">
-              <span className="row__label">Количество столбиков</span>
-              <span className="row__hint">12–1200, логарифмическая шкала</span>
+              <span className="row__label">Поворот</span>
             </div>
             <Slider
               min={0}
-              max={100}
+              max={360}
               step={1}
-              value={Math.round((Math.log(Math.max(12, value.bars) / 12) / Math.log(100)) * 100)}
-              onChange={position =>
-                set({
-                  bars: Math.max(
-                    12,
-                    Math.min(1200, Math.round(12 * Math.pow(1200 / 12, position / 100)))
-                  )
-                })
-              }
-              format={() => String(value.bars)}
+              value={value.rotation}
+              onChange={rotation => set({ rotation })}
+              format={item => `${item}°`}
             />
           </div>
 
-          {spectrumModes.includes(value.mode) && (
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Отражение по X</span>
+            </div>
+            <Switch checked={value.mirrorX} onChange={mirrorX => set({ mirrorX })} />
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Отражение по Y</span>
+            </div>
+            <Switch checked={value.mirrorY} onChange={mirrorY => set({ mirrorY })} />
+          </div>
+
+          {spectrum && (
             <>
               <div className="row">
                 <div className="row__text">
@@ -523,12 +643,6 @@ function VisualizerControls({
                 />
               </div>
             </>
-          )}
-
-          {palette && (
-            <p className="note">
-              Палитра «{palette.label}». Захват идёт через системный loopback Windows.
-            </p>
           )}
         </>
       )}
@@ -825,8 +939,10 @@ function WeatherPanel({ settings, refresh }: PanelProps): ReactElement {
   )
 }
 
-function EqualizerPanel({ settings, patch, toggleWidget }: PanelProps): ReactElement {
-  const eq = settings.equalizer
+function EqualizerPanel({ settings, refresh }: PanelProps): ReactElement {
+  const instances = settings.equalizer.instances
+  const [activeId, setActiveId] = useState<string | null>(instances[0]?.id ?? null)
+  const active = instances.find(instance => instance.id === activeId) ?? instances[0] ?? null
   const [displays, setDisplays] = useState<Array<{ id: number; label: string }>>([])
 
   useEffect(() => {
@@ -836,126 +952,133 @@ function EqualizerPanel({ settings, patch, toggleWidget }: PanelProps): ReactEle
       .catch(() => undefined)
   }, [])
 
-  const patchEq = (value: Partial<EqualizerSettings>): void => patch({ equalizer: value })
+  const update = async (patch: Partial<EqualizerSettings>): Promise<void> => {
+    if (!active) return
+    await window.api.patchEqualizer(active.id, { settings: patch })
+    await refresh()
+  }
+
+  const addCopy = async (): Promise<void> => {
+    const instance = await window.api.addEqualizer()
+    await refresh()
+    if (instance) setActiveId(instance.id)
+  }
+
+  const removeCopy = async (id: string): Promise<void> => {
+    await window.api.removeEqualizer(id)
+    await refresh()
+  }
+
+  const toggleCopy = async (): Promise<void> => {
+    if (!active) return
+    if (active.enabled) await window.api.closeEqualizer(active.id)
+    else await window.api.openEqualizer(active.id)
+    await refresh()
+  }
 
   return (
     <section className="panel">
-      <div className="row">
+      <div className="row row--stacked">
         <div className="row__text">
-          <span className="row__label">Показывать виджет</span>
-          <span className="row__hint">Визуализация системного звука на рабочем столе</span>
+          <span className="row__label">Копии эквалайзера</span>
+          <span className="row__hint">До 5 независимых визуализаций со своими настройками</span>
         </div>
-        <Switch
-          checked={settings.widgets.equalizer.enabled}
-          onChange={value => toggleWidget('equalizer', value)}
-        />
-      </div>
-
-      <VisualizerControls value={eq.visualizer} onChange={visualizer => patchEq({ visualizer })} />
-
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Масштаб окна</span>
-          <span className="row__hint">50–300%, меняется только в обычном окне</span>
-        </div>
-        <Slider
-          min={0.5}
-          max={3}
-          step={0.05}
-          value={eq.scale}
-          onChange={scale => patchEq({ scale })}
-          format={item => `${Math.round(item * 100)}%`}
-        />
-      </div>
-
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Монитор</span>
-          <span className="row__hint">Для полосы по краю выбранного монитора</span>
-        </div>
-        <select
-          className="select"
-          value={eq.displayId ?? 0}
-          onChange={event => patchEq({ displayId: Number(event.target.value) || null })}
-        >
-          <option value={0}>Текущий</option>
-          {displays.map(display => (
-            <option value={display.id} key={display.id}>
-              {display.label}
-            </option>
+        <div className="city-list">
+          {instances.map((instance, index) => (
+            <div
+              className={`city-chip ${active?.id === instance.id ? 'is-active' : ''}`}
+              key={instance.id}
+            >
+              <button
+                type="button"
+                className="city-chip__name"
+                onClick={() => setActiveId(instance.id)}
+              >
+                Эквалайзер {index + 1}
+              </button>
+              <button
+                type="button"
+                className="city-chip__remove"
+                title="Удалить копию"
+                onClick={() => void removeCopy(instance.id)}
+              >
+                ×
+              </button>
+            </div>
           ))}
-        </select>
+          {instances.length < MAX_EQUALIZER_COPIES && (
+            <button type="button" className="city-add" onClick={() => void addCopy()}>
+              + Добавить копию
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Размещение</span>
-          <span className="row__hint">Полоса по краю монитора на всю длину</span>
-        </div>
-        <select
-          className="select"
-          value={eq.dock}
-          onChange={event => patchEq({ dock: event.target.value as EqualizerSettings['dock'] })}
-        >
-          <option value="free">Обычное окно</option>
-          <option value="bottom">Нижний край</option>
-          <option value="top">Верхний край</option>
-          <option value="left">Левый край</option>
-          <option value="right">Правый край</option>
-        </select>
-      </div>
-
-      {eq.dock !== 'free' && (
-        <div className="row">
-          <div className="row__text">
-            <span className="row__label">Толщина полосы</span>
-          </div>
-          <Slider
-            min={48}
-            max={360}
-            step={2}
-            value={eq.dockThickness}
-            onChange={dockThickness => patchEq({ dockThickness })}
-            format={item => `${item}px`}
-          />
-        </div>
+      {!active && (
+        <p className="note">Копий пока нет. Добавьте копию, чтобы открыть визуализацию.</p>
       )}
 
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Отражение по горизонтали</span>
-        </div>
-        <Switch checked={eq.mirrorX} onChange={mirrorX => patchEq({ mirrorX })} />
-      </div>
-
-      <div className="row">
-        <div className="row__text">
-          <span className="row__label">Отражение по вертикали</span>
-        </div>
-        <Switch checked={eq.mirrorY} onChange={mirrorY => patchEq({ mirrorY })} />
-      </div>
-
-      {eq.dock === 'free' && (
-        <div className="row">
-          <div className="row__text">
-            <span className="row__label">Край монитора</span>
-            <span className="row__hint">Центрирует окно у выбранной грани</span>
+      {active && (
+        <>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Показывать эту копию</span>
+              <span className="row__hint">
+                {active.width} × {active.height} px — размер меняется перетаскиванием краёв окна
+              </span>
+            </div>
+            <Switch checked={active.enabled} onChange={() => void toggleCopy()} />
           </div>
-          <div className="align-buttons">
-            <button type="button" onClick={() => void window.api.alignEqualizer('top')}>
-              Сверху
-            </button>
-            <button type="button" onClick={() => void window.api.alignEqualizer('bottom')}>
-              Снизу
-            </button>
-            <button type="button" onClick={() => void window.api.alignEqualizer('left')}>
-              Слева
-            </button>
-            <button type="button" onClick={() => void window.api.alignEqualizer('right')}>
-              Справа
-            </button>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Показывать в окне</span>
+              <span className="row__hint">
+                Выключено — прозрачная визуализация без фона, рамки и отступов
+              </span>
+            </div>
+            <Switch
+              checked={active.settings.windowed}
+              onChange={windowed => void update({ windowed })}
+            />
           </div>
-        </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Положение</span>
+              <span className="row__hint">Центр выбранного монитора</span>
+            </div>
+            <div className="align-buttons">
+              <button type="button" onClick={() => void window.api.centerEqualizer(active.id)}>
+                По центру монитора
+              </button>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Монитор</span>
+              <span className="row__hint">Для кнопки центрирования</span>
+            </div>
+            <select
+              className="select"
+              value={active.settings.displayId ?? 0}
+              onChange={event => void update({ displayId: Number(event.target.value) || null })}
+            >
+              <option value={0}>Текущий</option>
+              {displays.map(display => (
+                <option value={display.id} key={display.id}>
+                  {display.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <VisualizerControls
+            value={active.settings.visualizer}
+            onChange={visualizer => void update({ visualizer })}
+          />
+        </>
       )}
 
       <p className="note">

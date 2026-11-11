@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AppSettings,
   City,
+  EqualizerInstance,
+  EqualizerInstancePatch,
   MusicAction,
   MusicSnapshot,
   SettingsPatch,
@@ -38,8 +40,18 @@ const api = {
   getDisplays: (): Promise<
     Array<{ id: number; label: string; width: number; height: number; x: number; y: number }>
   > => ipcRenderer.invoke('app:displays'),
-  alignEqualizer: (edge: 'top' | 'bottom' | 'left' | 'right'): Promise<boolean> =>
-    ipcRenderer.invoke('equalizer:align', edge),
+  addEqualizer: (): Promise<EqualizerInstance | null> =>
+    ipcRenderer.invoke('equalizer:add') as Promise<EqualizerInstance | null>,
+  removeEqualizer: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke('equalizer:remove', id) as Promise<boolean>,
+  openEqualizer: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke('equalizer:open', id) as Promise<boolean>,
+  closeEqualizer: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke('equalizer:close', id) as Promise<boolean>,
+  patchEqualizer: (id: string, patch: EqualizerInstancePatch): Promise<EqualizerInstance | null> =>
+    ipcRenderer.invoke('equalizer:patch', id, patch) as Promise<EqualizerInstance | null>,
+  centerEqualizer: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke('equalizer:center', id) as Promise<boolean>,
   getMusic: (): Promise<MusicSnapshot> => ipcRenderer.invoke('music:get'),
   onMusicSample: (listener: (snapshot: MusicSnapshot) => void): (() => void) =>
     subscribe('music:sample', listener),

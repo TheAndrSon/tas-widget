@@ -85,11 +85,8 @@ export interface WeatherInstancePatch {
   settings?: Partial<WeatherSettings>
 }
 
-export type VisualizerMode =
-  'off' | 'bars' | 'ring' | 'sparks' | 'radial' | 'mirror' | 'dots' | 'line'
-export type VisualizerPalette =
-  'neon' | 'sunset' | 'ice' | 'matrix' | 'candy' | 'gradient' | 'custom'
-export type AudioSource = 'system' | 'window' | 'multi'
+export type VisualizerMode = 'off' | 'bars' | 'radial' | 'line' | 'dots' | 'sparks' | 'waves'
+export type VisualizerPalette = 'neon' | 'sunset' | 'ice' | 'matrix' | 'candy' | 'custom'
 
 export interface VisualizerSettings {
   mode: VisualizerMode
@@ -98,37 +95,59 @@ export interface VisualizerSettings {
   color2: string
   /** 0.2..2 */
   intensity: number
-  /** 12..1200; по умолчанию 64 */
+  /** количество столбиков, 12..256 */
   bars: number
-  /** максимальная высота столбика, % высоты виджета */
+  /** толщина столбика, px */
+  barThickness: number
+  /** расстояние между столбиками, px */
+  barGap: number
+  /** максимальная высота, % высоты окна */
   maxHeight: number
-  source: AudioSource
-  audioWindowIds: string[]
-  mirrorOrigin: 'start' | 'end'
+  /** зеркальная копия относительно оси */
+  mirror: boolean
+  /** положение оси отражения, 0..1 */
+  axis: number
+  /** поворот всей фигуры, градусы */
+  rotation: number
+  mirrorX: boolean
+  mirrorY: boolean
+  lineThickness: number
+  dotSize: number
+  sparkSize: number
+  sparkSpeed: number
+  waveCount: number
+  waveSpeed: number
+  waveThickness: number
   /** нижняя и верхняя граница частот, Гц */
   freqMin: number
   freqMax: number
   freqScale: 'log' | 'linear'
-  ringThickness: number
-  ringPulse: number
-  gradientAngle: number
-  gradientScale: number
-  gradientSpeed: number
 }
-
-export type EqualizerDock = 'free' | 'bottom' | 'top' | 'left' | 'right'
 
 export interface EqualizerSettings {
   visualizer: VisualizerSettings
-  /** обычное окно или полоса по краю монитора */
-  dock: EqualizerDock
-  dockThickness: number
-  /** выбранный монитор; null — текущий */
+  /** окно с фоном или прозрачная визуализация без рамки */
+  windowed: boolean
+  /** выбранный монитор для центрирования; null — текущий */
   displayId: number | null
-  /** 0.5..3 — масштаб свободного окна */
-  scale: number
-  mirrorX: boolean
-  mirrorY: boolean
+}
+
+export interface EqualizerInstance {
+  id: string
+  x: number | null
+  y: number | null
+  width: number
+  height: number
+  enabled: boolean
+  settings: EqualizerSettings
+}
+
+export interface EqualizerState {
+  instances: EqualizerInstance[]
+}
+
+export interface EqualizerInstancePatch {
+  settings?: Partial<EqualizerSettings>
 }
 
 export interface AppSettings {
@@ -136,14 +155,13 @@ export interface AppSettings {
   system: SystemSettings
   music: MusicSettings
   weather: WeatherState
-  equalizer: EqualizerSettings
+  equalizer: EqualizerState
 }
 
 export type SettingsPatch = {
   widgets?: Partial<Record<WidgetId, Partial<WidgetPlacement>>>
   system?: Partial<SystemSettings>
   music?: Partial<MusicSettings>
-  equalizer?: Partial<EqualizerSettings>
 }
 
 export interface DiskSample {

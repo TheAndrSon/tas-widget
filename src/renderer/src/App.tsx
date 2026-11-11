@@ -31,7 +31,7 @@ export function App(): ReactElement {
       content = <WeatherWidget instanceId={instance} />
       break
     case 'equalizer':
-      content = <EqualizerWidget />
+      content = <EqualizerWidget instanceId={instance} />
       break
     default:
       content = <Placeholder id={id ?? 'unknown'} />

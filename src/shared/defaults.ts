@@ -1,4 +1,11 @@
-import type { AppSettings, City, WeatherSettings, WidgetId, WidgetPlacement } from './types'
+import type {
+  AppSettings,
+  City,
+  EqualizerSettings,
+  WeatherSettings,
+  WidgetId,
+  WidgetPlacement
+} from './types'
 import { WIDGETS, readyWidgetIds } from './widgets'
 import { DEFAULT_VISUALIZER } from './visualizer'
 
@@ -84,6 +91,17 @@ const widgets = Object.fromEntries(
 
 export const DEFAULT_WEATHER_CITY = CITY_PRESETS[0]
 export const MAX_WEATHER_CITIES = 5
+export const MAX_EQUALIZER_COPIES = 5
+export const DEFAULT_EQUALIZER_WIDTH = 360
+export const DEFAULT_EQUALIZER_HEIGHT = 200
+
+export function defaultEqualizerSettings(): EqualizerSettings {
+  return {
+    visualizer: structuredClone(DEFAULT_VISUALIZER),
+    windowed: true,
+    displayId: null
+  }
+}
 
 export const DEFAULT_WEATHER_SETTINGS: WeatherSettings = {
   units: 'metric',
@@ -125,13 +143,17 @@ export const DEFAULT_SETTINGS: AppSettings = {
     ]
   },
   equalizer: {
-    visualizer: structuredClone(DEFAULT_VISUALIZER),
-    dock: 'free',
-    dockThickness: 120,
-    displayId: null,
-    scale: 1,
-    mirrorX: false,
-    mirrorY: false
+    instances: [
+      {
+        id: 'equalizer-1',
+        x: null,
+        y: null,
+        width: DEFAULT_EQUALIZER_WIDTH,
+        height: DEFAULT_EQUALIZER_HEIGHT,
+        enabled: false,
+        settings: defaultEqualizerSettings()
+      }
+    ]
   }
 }
 
