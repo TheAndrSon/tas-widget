@@ -1453,13 +1453,6 @@ function DicePanel({ instance, patchSettings }: PanelProps): JSX.Element {
 
 function EqualizerPanel({ instance, patchSettings }: PanelProps): JSX.Element {
   const eq = instance.settings as EqualizerSettings
-  const [displays, setDisplays] = useState<RuntimeInfo['displays']>([])
-  useEffect(() => {
-    window.widgets
-      .getRuntime()
-      .then((runtime) => setDisplays(runtime.displays))
-      .catch(() => undefined)
-  }, [])
   return (
     <Section title="Эквалайзер" hint="визуализация текущей музыки">
       <VisualizerControls
@@ -1467,105 +1460,6 @@ function EqualizerPanel({ instance, patchSettings }: PanelProps): JSX.Element {
         onChange={(visualizer) => patchSettings({ visualizer })}
         allowedModes={['off', 'radial', 'particles']}
       />
-      <Row label="Масштаб визуализации" hint="50–500%; размер окна меняется вместе с визуализацией">
-        <Slider
-          min={0.5}
-          max={5}
-          step={0.05}
-          value={eq.scale}
-          onChange={(scale) => patchSettings({ scale })}
-          format={(value) => `${Math.round(value * 100)}%`}
-        />
-      </Row>
-      <Row label="Монитор" hint="Эквалайзер не будет перескакивать на другой монитор даже частично">
-        <select
-          className="select"
-          value={eq.displayId ?? 0}
-          onChange={(event) => patchSettings({ displayId: Number(event.target.value) || null })}
-        >
-          <option value={0}>Текущий</option>
-          {displays.map((display) => (
-            <option value={display.id} key={display.id}>
-              {display.label}
-            </option>
-          ))}
-        </select>
-      </Row>
-      <Row label="Размещение" hint="Полоса по краю монитора на всю длину">
-        <select
-          className="select"
-          value={eq.dock}
-          onChange={(event) => {
-            const dock = event.target.value
-            patchSettings({ dock })
-            if (dock === 'free') window.widgets.setManualSize(instance.id, null)
-          }}
-        >
-          <option value="free">Обычное окно</option>
-          <option value="bottom">Нижний край</option>
-          <option value="top">Верхний край</option>
-          <option value="left">Левый край</option>
-          <option value="right">Правый край</option>
-        </select>
-      </Row>
-      {eq.dock !== 'free' && (
-        <Row label="Толщина полосы">
-          <Slider
-            min={48}
-            max={320}
-            step={2}
-            value={eq.dockThickness}
-            onChange={(dockThickness) => patchSettings({ dockThickness })}
-            format={(value) => `${value}px`}
-          />
-        </Row>
-      )}
-      <Row label="Отражение">
-        <div className="inline-control">
-          <Toggle checked={eq.mirrorX} onChange={(mirrorX) => patchSettings({ mirrorX })} />
-          <span className="row__hint">по горизонтали</span>
-        </div>
-      </Row>
-      <Row label="Отражение">
-        <div className="inline-control">
-          <Toggle checked={eq.mirrorY} onChange={(mirrorY) => patchSettings({ mirrorY })} />
-          <span className="row__hint">по вертикали</span>
-        </div>
-      </Row>
-      {eq.dock === 'free' && (
-        <Row label="Край монитора" hint="Центрирует окно у выбранной грани">
-          <div className="slot-editor__actions">
-            <button
-              type="button"
-              className="btn btn--small"
-              onClick={() => window.widgets.alignEqualizer(instance.id, 'top')}
-            >
-              Сверху
-            </button>
-            <button
-              type="button"
-              className="btn btn--small"
-              onClick={() => window.widgets.alignEqualizer(instance.id, 'bottom')}
-            >
-              Снизу
-            </button>
-            <button
-              type="button"
-              className="btn btn--small"
-              onClick={() => window.widgets.alignEqualizer(instance.id, 'left')}
-            >
-              Слева
-            </button>
-            <button
-              type="button"
-              className="btn btn--small"
-              onClick={() => window.widgets.alignEqualizer(instance.id, 'right')}
-            >
-              Справа
-            </button>
-          </div>
-        </Row>
-      )}
       <div className="style-note">
         Данные берутся из системной медиа-сессии Windows — как у виджета музыки.
       </div>

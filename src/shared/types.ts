@@ -26,18 +26,18 @@ export type SunMode = 'off' | 'compact' | 'arc'
 export const WIDGET_TYPES: WidgetType[] = [
   'weather',
   'music',
-  'clock',
-  'weekday',
+  'system',
+  'sims',
+  'finance',
+  'equalizer',
   'calendar',
   'astro',
   'tarot',
+  'clock',
+  'weekday',
   'dice',
-  'equalizer',
   'todo',
-  'sims',
-  'finance',
-  'twitch',
-  'system'
+  'twitch'
 ]
 
 export const DUPLICABLE_TYPES: WidgetType[] = [

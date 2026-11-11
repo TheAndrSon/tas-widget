@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type JSX
-} from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type JSX } from 'react'
 import type {
   DeepPartial,
   GeneralSettings,
@@ -16,19 +9,24 @@ import type {
   WidgetStyle,
   WidgetType
 } from '@shared/types'
-import {
-  DUPLICABLE_TYPES,
-  MAX_COPIES_PER_TYPE,
-  WIDGET_META,
-  WIDGET_TYPES
-} from '@shared/types'
+import { DUPLICABLE_TYPES, MAX_COPIES_PER_TYPE, WIDGET_META, WIDGET_TYPES } from '@shared/types'
 import { instanceDetail, instanceLabel } from '@shared/labels'
 import { useAppState } from '../hooks'
 import { ACCENT, WIDGET_ICON } from '../theme'
 import { capitalize } from '../format'
 import { WidgetPanel } from './panels'
 import { Chip, Row, Section, Slider, Toggle } from './controls'
-import { IconClose, IconChevronDown, IconChevronUp, IconLock, IconPlus, IconSliders, IconTrash } from '../ui/icons'
+import {
+  IconClose,
+  IconChevronDown,
+  IconChevronUp,
+  IconLock,
+  IconPlus,
+  IconSliders,
+  IconTrash
+} from '../ui/icons'
+
+const SOON_TYPES: WidgetType[] = ['clock', 'weekday', 'twitch']
 
 function readHash(): SettingsTab {
   return window.location.hash.replace(/^#/, '')
@@ -79,10 +77,9 @@ function Titlebar({
 function rowTitle(instance: WidgetInstance, all: WidgetInstance[]): string {
   const detail = instanceDetail(instance)
   if (!detail) return WIDGET_META[instance.type].title
-  const same = all.filter(
-    (item) => item.type === instance.type && instanceDetail(item) === detail
-  )
-  const suffix = same.length > 1 ? ` (${same.findIndex((item) => item.id === instance.id) + 1})` : ''
+  const same = all.filter((item) => item.type === instance.type && instanceDetail(item) === detail)
+  const suffix =
+    same.length > 1 ? ` (${same.findIndex((item) => item.id === instance.id) + 1})` : ''
   return `${capitalize(detail)}${suffix}`
 }
 
@@ -117,6 +114,7 @@ function Sidebar({
             <div className="sidebar__group" key={type}>
               <div className="sidebar__group-head">
                 <span>{WIDGET_META[type].title}</span>
+                {SOON_TYPES.includes(type) && <span className="sidebar__soon">скоро</span>}
                 {instances.length > 1 && (
                   <span className="sidebar__group-count">{instances.length}</span>
                 )}
@@ -191,18 +189,28 @@ function Sidebar({
       </nav>
 
       <div className="sidebar__footer">
-        <button type="button" className="btn btn--ghost" onClick={() => window.widgets.setLockedAll(false)}>
+        <button
+          type="button"
+          className="btn btn--ghost"
+          onClick={() => window.widgets.setLockedAll(false)}
+        >
           Разблокировать все
         </button>
-        <button type="button" className="btn btn--ghost" onClick={() => window.widgets.setLockedAll(true)}>
+        <button
+          type="button"
+          className="btn btn--ghost"
+          onClick={() => window.widgets.setLockedAll(true)}
+        >
           Заблокировать все
         </button>
-        <button type="button" className="btn btn--ghost" onClick={() => window.widgets.resetPositions()}>
+        <button
+          type="button"
+          className="btn btn--ghost"
+          onClick={() => window.widgets.resetPositions()}
+        >
           Сбросить положение
         </button>
-        <div className="sidebar__hint">
-          Правый клик по иконке в трее открывает быстрое меню.
-        </div>
+        <div className="sidebar__hint">Правый клик по иконке в трее открывает быстрое меню.</div>
       </div>
     </aside>
   )
@@ -220,7 +228,9 @@ function GeneralPanel({
   const general = state.general
   const [alignId, setAlignId] = useState(state.widgets[0]?.id ?? '')
   const [alignBusy, setAlignBusy] = useState(false)
-  const align = (action: 'left' | 'centerX' | 'right' | 'top' | 'centerY' | 'bottom' | 'grid'): void => {
+  const align = (
+    action: 'left' | 'centerX' | 'right' | 'top' | 'centerY' | 'bottom' | 'grid'
+  ): void => {
     if (!alignId) return
     setAlignBusy(true)
     void window.widgets.alignWidget(alignId, action).finally(() => setAlignBusy(false))
@@ -252,10 +262,7 @@ function GeneralPanel({
         <Row label="Горячая клавиша" hint="Разблокировать или заблокировать все виджеты">
           <kbd className="kbd">{runtime?.hotkey ?? 'Ctrl + Alt + W'}</kbd>
         </Row>
-        <Row
-          label="Монитор"
-          hint="Где запускать новые виджеты и открывать это окно"
-        >
+        <Row label="Монитор" hint="Где запускать новые виджеты и открывать это окно">
           <select
             className="select"
             value={general.defaultDisplayId}
@@ -297,16 +304,26 @@ function GeneralPanel({
             onChange={(showGrid) => patchGeneral({ grid: { ...general.grid, showGrid } })}
           />
         </Row>
-        <Row label="Перемещение стрелками" hint="Выберите виджет кликом; стрелки двигают на 1 px, удержание ускоряет">
+        <Row
+          label="Перемещение стрелками"
+          hint="Выберите виджет кликом; стрелки двигают на 1 px, удержание ускоряет"
+        >
           <Toggle
             checked={general.arrowMove}
             onChange={(value) => patchGeneral({ arrowMove: value })}
           />
         </Row>
-        <Row label="Сетка" hint="Центральные линии монитора чуть жирнее; свободное перемещение без привязки">
+        <Row
+          label="Сетка"
+          hint="Центральные линии монитора чуть жирнее; свободное перемещение без привязки"
+        >
           <div className="layout-keys">
-            <span><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>G</kbd> скрыть/показать сетку</span>
-            <span><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>W</kbd> блокировка/разблокировка</span>
+            <span>
+              <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>G</kbd> скрыть/показать сетку
+            </span>
+            <span>
+              <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>W</kbd> блокировка/разблокировка
+            </span>
           </div>
         </Row>
 
@@ -376,7 +393,11 @@ function GeneralPanel({
         </Row>
         <Row label="Редактирование">
           <div className="btn-row">
-            <button type="button" className="btn" onClick={() => window.widgets.setLockedAll(false)}>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => window.widgets.setLockedAll(false)}
+            >
               Разблокировать все
             </button>
             <button type="button" className="btn" onClick={() => window.widgets.setLockedAll(true)}>
@@ -599,7 +620,9 @@ export function SettingsApp(): JSX.Element {
                     className="btn btn--primary"
                     onClick={() => void addCopy(instance.type)}
                     disabled={atLimit}
-                    title={atLimit ? 'Достигнут лимит копий' : 'Создать копию с теми же настройками'}
+                    title={
+                      atLimit ? 'Достигнут лимит копий' : 'Создать копию с теми же настройками'
+                    }
                   >
                     <IconPlus size={13} />
                     Добавить копию

@@ -195,6 +195,7 @@ export function SimsWidget({
   instanceId: string
 }): JSX.Element {
   const state = useAppState()
+  const [worsen, setWorsen] = useState(false)
   const stored = state?.sims[settings.groupId]
   if (!stored) {
     return (
@@ -203,7 +204,6 @@ export function SimsWidget({
       </div>
     )
   }
-  const [worsen, setWorsen] = useState(false)
   const mood = decayMood(stored, Date.now(), settings.difficulty)
   const color = settings.colorMode === 'custom' ? settings.color : moodColor(mood.mood)
   const style = {

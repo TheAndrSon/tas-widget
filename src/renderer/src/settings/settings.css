@@ -4,7 +4,7 @@ body,
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #0b0e14;
+  background: transparent;
 }
 
 .app {
@@ -146,6 +146,16 @@ body,
 .sidebar__group-count {
   font-size: 9px;
   color: rgba(255, 255, 255, 0.26);
+}
+
+.sidebar__soon {
+  padding: 1px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: var(--text-faint);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .sidebar__add {
