@@ -3,6 +3,16 @@ import type { DiskSample, SystemSample } from '../shared/types'
 
 interface SystemInformation {
   fsSize(): Promise<Array<{ mount?: string; size?: number; used?: number }>>
+  graphics(): Promise<{
+    controllers?: Array<{
+      model?: string
+      utilizationGpu?: number
+      temperatureGpu?: number
+      memoryUsed?: number
+      vram?: number
+    }>
+  }>
+  cpuTemperature(): Promise<{ main?: number; max?: number }>
 }
 
 export class SystemMonitor {
@@ -12,6 +22,14 @@ export class SystemMonitor {
   private si: SystemInformation | null = null
   private disks: DiskSample[] = []
   private disksAt = 0
+  private gpu = {
+    name: '',
+    load: undefined as number | undefined,
+    temp: undefined as number | undefined
+  }
+  private gpuAt = 0
+  private cpuTemp: number | undefined
+  private tempAt = 0
 
   constructor(private readonly onSample: (sample: SystemSample) => void) {}
 
@@ -45,15 +63,56 @@ export class SystemMonitor {
     return Math.min(100, Math.max(0, 100 - (idleDelta / totalDelta) * 100))
   }
 
+  private async info(): Promise<SystemInformation> {
+    if (!this.si) {
+      const imported = (await import('systeminformation')) as unknown as {
+        default?: SystemInformation
+      } & SystemInformation
+      this.si = imported.default ?? imported
+    }
+    return this.si
+  }
+
+  private async readGpu(): Promise<void> {
+    try {
+      const si = await this.info()
+      const data = await si.graphics()
+      const list = data.controllers ?? []
+      const controller = list.find(item => typeof item.utilizationGpu === 'number') ?? list[0]
+      if (!controller) return
+      this.gpu = {
+        name: controller.model ?? '',
+        load:
+          typeof controller.utilizationGpu === 'number'
+            ? Math.min(100, Math.max(0, controller.utilizationGpu))
+            : undefined,
+        temp:
+          typeof controller.temperatureGpu === 'number'
+            ? Math.round(controller.temperatureGpu)
+            : undefined
+      }
+    } catch {
+      // GPU может быть недоступен без драйвера/прав.
+    }
+  }
+
+  private async readTemps(): Promise<void> {
+    try {
+      const si = await this.info()
+      const temperatures = await si.cpuTemperature()
+      this.cpuTemp =
+        typeof temperatures.main === 'number' && temperatures.main > 0
+          ? Math.round(temperatures.main)
+          : undefined
+    } catch {
+      this.cpuTemp = undefined
+    }
+  }
+
   private async readDisks(): Promise<DiskSample[]> {
     try {
-      if (!this.si) {
-        const imported = (await import('systeminformation')) as unknown as {
-          default?: SystemInformation
-        } & SystemInformation
-        this.si = imported.default ?? imported
-      }
-      const list = await this.si.fsSize()
+      const si = await this.info()
+      const list = await si.fsSize()
       const seen = new Set<string>()
       const disks: DiskSample[] = []
       for (const item of list) {
@@ -80,7 +139,25 @@ export class SystemMonitor {
         this.disksAt = Date.now()
         this.disks = await this.readDisks()
       }
-      this.onSample({ cpu, memUsed, memTotal, disks: this.disks, at: Date.now() })
+      if (Date.now() - this.tempAt > 15000) {
+        this.tempAt = Date.now()
+        await this.readTemps()
+      }
+      if (Date.now() - this.gpuAt > 5000) {
+        this.gpuAt = Date.now()
+        await this.readGpu()
+      }
+      this.onSample({
+        cpu,
+        memUsed,
+        memTotal,
+        disks: this.disks,
+        cpuTemp: this.cpuTemp,
+        gpuName: this.gpu.name || undefined,
+        gpuLoad: this.gpu.load,
+        gpuTemp: this.gpu.temp,
+        at: Date.now()
+      })
     } finally {
       this.busy = false
     }

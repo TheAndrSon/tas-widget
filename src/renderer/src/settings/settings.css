@@ -894,6 +894,51 @@ body {
   cursor: pointer;
 }
 
+.sims-rules {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.sims-rules summary {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sims-rules p {
+  margin: 8px 0;
+}
+
+.sims-rules code {
+  color: var(--text-soft);
+  font-size: 10.5px;
+}
+
+.sims-rules__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 12px;
+  margin-top: 8px;
+}
+
+.sims-rules__list > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 10px;
+}
+
+.sims-rules__list strong {
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
 .global-actions {
   display: flex;
   flex-direction: column;

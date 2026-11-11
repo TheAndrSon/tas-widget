@@ -351,6 +351,10 @@ export interface SystemSample {
   memUsed: number
   memTotal: number
   disks: DiskSample[]
+  cpuTemp?: number
+  gpuName?: string
+  gpuLoad?: number
+  gpuTemp?: number
   at: number
 }
 

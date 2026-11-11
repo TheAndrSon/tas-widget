@@ -70,6 +70,10 @@
   background: linear-gradient(90deg, #7b6bff, #a79bff);
 }
 
+.metric--gpu .meter__fill {
+  background: linear-gradient(90deg, #6ee7b7, #4aa8ff);
+}
+
 .system__disks {
   display: flex;
   gap: 6px;

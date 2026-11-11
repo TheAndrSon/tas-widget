@@ -19,7 +19,7 @@ import type {
   WindowTarget
 } from '@shared/types'
 import { MAX_EQUALIZER_COPIES, MAX_SIMS_INSTANCES, MAX_WEATHER_CITIES } from '@shared/defaults'
-import { SIMS_NEEDS } from '@shared/sims'
+import { SIMS_ACHIEVEMENTS, SIMS_NEEDS } from '@shared/sims'
 import { WINDOW_PRESETS } from '@shared/windowStyle'
 import { VISUALIZER_MODES, VISUALIZER_PALETTES } from '@shared/visualizer'
 import { WIDGETS } from '@shared/widgets'
@@ -2386,11 +2386,29 @@ function SimsPanel({ settings, refresh }: PanelProps): ReactElement {
             </div>
           )}
 
-          <p className="note">
-            Просадка: ночью 20:00–10:00 по 1 баллу в час, днём по 6. Каждые 3 часа при потребности
-            ≤15 списываются звёзды, каждые 6 часов при настроении 80+ начисляются. Награды
-            открываются автоматически и видны по кнопке 🏆 в блоке потребностей.
-          </p>
+          <details className="sims-rules">
+            <summary>Правила игры и награды</summary>
+            <p>
+              Лайт: +24 к потребности и +2★. Хард: +16 и +1★, побочный −4 и быстрее ночная просадка.
+              Ночью 20:00–10:00 −1 (хард −2), днём −6 в час.
+            </p>
+            <p>
+              При потребности ≤15 раз в 3 часа списывается 1★ за каждую низкую потребность. При
+              настроении 80+ раз в 6 часов начисляется +3★ (лайт) / +2★ (хард). «Ухудшить» снижает
+              выбранную потребность и стоит 1★.
+            </p>
+            <p>
+              Полное описание: <code>docs/SIMS_GAME.md</code>
+            </p>
+            <div className="sims-rules__list">
+              {SIMS_ACHIEVEMENTS.map(item => (
+                <div key={item.id}>
+                  <strong>{item.name}</strong>
+                  <span>{item.hint}</span>
+                </div>
+              ))}
+            </div>
+          </details>
         </>
       )}
     </section>
