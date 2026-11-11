@@ -87,6 +87,8 @@ const api = {
   getSims: (): Promise<Record<string, SimsState>> => ipcRenderer.invoke('sims:get'),
   onSimsChanged: (listener: (groups: Record<string, SimsState>) => void): (() => void) =>
     subscribe('sims:changed', listener),
+  openSimsRewards: (id: string): Promise<boolean> => ipcRenderer.invoke('sims:rewards', id),
+  closeSimsRewards: (): Promise<boolean> => ipcRenderer.invoke('sims:close-rewards'),
   resetSims: (groupId: string): Promise<SimsState | null> =>
     ipcRenderer.invoke('sims:reset', groupId),
   addSims: (mode: SimsMode): Promise<SimsInstance | null> =>

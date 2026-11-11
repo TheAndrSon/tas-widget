@@ -171,7 +171,9 @@ export function Visualizer({
         context.stroke()
 
         for (let index = 0; index < count; index += 1) {
-          const angle = (index / count) * Math.PI * 2 - Math.PI / 2
+          const angle = s.radialHalf
+            ? (index / count) * Math.PI - Math.PI / 2
+            : (index / count) * Math.PI * 2 - Math.PI / 2
           const value = levels[index] ?? 0
           const len = Math.max(2, length * Math.min(1, value * intensity * 1.45))
           const gradient = context.createLinearGradient(
@@ -344,7 +346,7 @@ export function Visualizer({
               vx: Math.cos(angle) * outward,
               vy: Math.sin(angle) * outward,
               life: 0.8 + Math.random() * 1.4,
-              size: s.sparkSize * (0.6 + Math.random() * 0.8)
+              size: s.sparkSize * (s.particleRandomSize ? 0.35 + Math.random() * 1.5 : 1)
             })
           } else {
             particles.push({
@@ -353,7 +355,7 @@ export function Visualizer({
               vx: (Math.random() - 0.5) * 26,
               vy: -(16 + Math.random() * 44) * (0.5 + s.sparkSpeed),
               life: 0.7 + Math.random() * 1.4,
-              size: s.sparkSize * (0.6 + Math.random() * 0.8)
+              size: s.sparkSize * (s.particleRandomSize ? 0.35 + Math.random() * 1.5 : 1)
             })
           }
           particles = particles.slice(-s.particleCount)

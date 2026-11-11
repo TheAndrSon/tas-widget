@@ -1334,6 +1334,16 @@ function VisualizerControls({
               </div>
               <div className="row">
                 <div className="row__text">
+                  <span className="row__label">Случайный размер</span>
+                  <span className="row__hint">Каждая частица получает свой размер</span>
+                </div>
+                <Switch
+                  checked={value.particleRandomSize}
+                  onChange={particleRandomSize => set({ particleRandomSize })}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
                   <span className="row__label">Базовая скорость</span>
                 </div>
                 <Slider
@@ -1490,6 +1500,15 @@ function VisualizerControls({
 
           {mode === 'radial' && (
             <>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Половина спектра</span>
+                  <span className="row__hint">
+                    Рисовать 180°, отражение дополнит вторую половину
+                  </span>
+                </div>
+                <Switch checked={value.radialHalf} onChange={radialHalf => set({ radialHalf })} />
+              </div>
               <div className="row">
                 <div className="row__text">
                   <span className="row__label">Отражение</span>
@@ -1988,8 +2007,8 @@ function EqualizerPanel({ settings, refresh }: PanelProps): ReactElement {
 
   const addCopy = async (): Promise<void> => {
     const instance = await window.api.addEqualizer()
-    await refresh()
     if (instance) setActiveId(instance.id)
+    await refresh()
   }
 
   const removeCopy = async (id: string): Promise<void> => {
@@ -2131,6 +2150,7 @@ function EqualizerPanel({ settings, refresh }: PanelProps): ReactElement {
           <VisualizerControls
             value={active.settings.visualizer}
             onChange={visualizer => void update({ visualizer })}
+            allowedModes={['off', 'radial', 'particles']}
           />
         </>
       )}

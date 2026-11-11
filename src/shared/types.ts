@@ -276,6 +276,9 @@ export interface VisualizerSettings {
   particleReactivity: number
   /** 0.1..1 — насколько широко частицы распределяются по области */
   particleSpread: number
+  particleRandomSize: boolean
+  /** радиальный режим: только половина спектра */
+  radialHalf: boolean
   waveCount: number
   waveSpeed: number
   waveThickness: number

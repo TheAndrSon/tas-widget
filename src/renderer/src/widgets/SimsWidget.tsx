@@ -71,7 +71,6 @@ export function SimsWidget({ instanceId }: { instanceId: string }): ReactElement
   const instance = useSimsInstance(instanceId)
   const state = useSimsGroup(instance?.groupId)
   const [worsen, setWorsen] = useState(false)
-  const [rewards, setRewards] = useState(false)
 
   if (!instance) {
     return (
@@ -90,7 +89,6 @@ export function SimsWidget({ instanceId }: { instanceId: string }): ReactElement
   const act = (action: SimsAction, need: SimsNeed): void => {
     if (!state) return
     void window.api.simsAction(state.groupId, worsen ? 'worsen' : action, need, settings.difficulty)
-    if (worsen) setWorsen(false)
   }
 
   return (
@@ -158,7 +156,7 @@ export function SimsWidget({ instanceId }: { instanceId: string }): ReactElement
               type="button"
               className="sims__trophy"
               title="Награды"
-              onClick={() => setRewards(value => !value)}
+              onClick={() => void window.api.openSimsRewards(instanceId)}
             >
               🏆 {unlocked}/{SIMS_ACHIEVEMENTS.length}
             </button>
@@ -196,7 +194,7 @@ export function SimsWidget({ instanceId }: { instanceId: string }): ReactElement
               className={`sims__worsen${worsen ? ' is-active' : ''}`}
               onClick={() => setWorsen(value => !value)}
             >
-              {worsen ? 'Ухудшение…' : 'Ухудшить'}
+              {worsen ? 'Улучшить' : 'Ухудшить'}
             </button>
           </div>
 
@@ -205,31 +203,6 @@ export function SimsWidget({ instanceId }: { instanceId: string }): ReactElement
             <span>{settings.difficulty === 'hard' ? 'хард' : 'лайт'}</span>
             <span>{state.stats.actions} действий</span>
           </div>
-
-          {rewards && (
-            <div className="sims-rewards">
-              <div className="sims-rewards__head">
-                <strong>Награды</strong>
-                <span>
-                  {unlocked}/{SIMS_ACHIEVEMENTS.length}
-                </span>
-              </div>
-              <div className="sims-rewards__list">
-                {SIMS_ACHIEVEMENTS.map(item => {
-                  const done = state.unlocked.includes(item.id)
-                  return (
-                    <div className={`sims-reward${done ? ' is-done' : ''}`} key={item.id}>
-                      <span>{done ? '🏆' : '☆'}</span>
-                      <div>
-                        <strong>{item.name}</strong>
-                        <small>{item.hint}</small>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>

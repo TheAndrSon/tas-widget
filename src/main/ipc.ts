@@ -232,6 +232,17 @@ export function registerIpc({ store, manager, monitor, music, weather, assets, s
 
   ipcMain.handle('sims:get', () => store.state.sims.groups)
 
+  ipcMain.handle('sims:rewards', (_event, id: unknown) => {
+    if (typeof id !== 'string') return false
+    manager.openSimsRewards(id)
+    return true
+  })
+
+  ipcMain.handle('sims:close-rewards', () => {
+    manager.closeSimsRewards()
+    return true
+  })
+
   ipcMain.handle('sims:reset', (_event, groupId: unknown) => {
     if (typeof groupId !== 'string') return null
     const state = store.resetSims(groupId)

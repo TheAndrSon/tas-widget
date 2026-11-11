@@ -45,6 +45,7 @@ export class WidgetManager {
   private weatherWins = new Map<string, BrowserWindow>()
   private equalizerWins = new Map<string, BrowserWindow>()
   private simsWins = new Map<string, BrowserWindow>()
+  private rewardsWin: BrowserWindow | null = null
   private timers = new Map<string, NodeJS.Timeout>()
   private applyingBounds = new Set<string>()
   private quitting = false
@@ -440,6 +441,68 @@ export class WidgetManager {
     if (win && !win.isDestroyed()) win.close()
   }
 
+  openSimsRewards(instanceId: string): void {
+    if (this.rewardsWin && !this.rewardsWin.isDestroyed()) {
+      this.rewardsWin.show()
+      this.rewardsWin.focus()
+      return
+    }
+    const source = this.simsWins.get(instanceId)
+    const display = screen.getPrimaryDisplay().workArea
+    const bounds = source?.isDestroyed() ? null : source?.getBounds()
+    const width = 360
+    const height = 520
+    let x = display.x + display.width - width - 24
+    let y = display.y + 60
+    if (bounds) {
+      const area = screen.getDisplayMatching(bounds).workArea
+      const right = bounds.x + bounds.width + 12
+      x =
+        right + width <= area.x + area.width ? right : Math.max(area.x + 12, bounds.x - width - 12)
+      y = Math.min(Math.max(bounds.y, area.y + 12), area.y + area.height - height - 12)
+    }
+
+    const win = new BrowserWindow({
+      width,
+      height,
+      x,
+      y,
+      show: false,
+      frame: false,
+      resizable: false,
+      maximizable: false,
+      minimizable: false,
+      skipTaskbar: true,
+      backgroundColor: '#0b0e14',
+      webPreferences: {
+        preload: join(__dirname, '../preload/index.js'),
+        sandbox: false,
+        contextIsolation: true,
+        nodeIntegration: false
+      }
+    })
+    win.setAlwaysOnTop(true, 'floating')
+    win.setPosition(Math.round(x), Math.round(y))
+    win.once('ready-to-show', () => win.show())
+    win.on('closed', () => {
+      if (this.rewardsWin === win) this.rewardsWin = null
+    })
+    const devUrl = process.env['ELECTRON_RENDERER_URL']
+    if (devUrl) {
+      void win.loadURL(`${devUrl}?widget=rewards&instance=${encodeURIComponent(instanceId)}`)
+    } else {
+      void win.loadFile(join(__dirname, '../renderer/index.html'), {
+        query: { widget: 'rewards', instance: instanceId }
+      })
+    }
+    this.rewardsWin = win
+  }
+
+  closeSimsRewards(): void {
+    if (this.rewardsWin && !this.rewardsWin.isDestroyed()) this.rewardsWin.close()
+    this.rewardsWin = null
+  }
+
   closeSims(id: string): void {
     this.store.setSimsEnabled(id, false)
     const win = this.simsWins.get(id)
@@ -561,6 +624,7 @@ export class WidgetManager {
     for (const id of [...this.weatherWins.keys()]) this.closeWeather(id)
     for (const id of [...this.equalizerWins.keys()]) this.closeEqualizer(id)
     for (const id of [...this.simsWins.keys()]) this.closeSims(id)
+    this.closeSimsRewards()
   }
 
   broadcast(channel: string, payload: unknown): void {
