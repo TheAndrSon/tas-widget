@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactElement } from 'react'
-import type { WindowStyle } from '@shared/types'
+import type { WindowImageLayer, WindowStyle } from '@shared/types'
+import { useAssetUrl } from './useAssetUrl'
 
 function rgba(hex: string, alpha: number): string {
   const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex)
@@ -41,6 +42,24 @@ export function windowStyleVars(style: WindowStyle): CSSProperties {
   return vars as CSSProperties
 }
 
+function StyleImage({ layer }: { layer: WindowImageLayer }): ReactElement | null {
+  const url = useAssetUrl(layer.assetId)
+  if (!url) return null
+
+  return (
+    <div
+      className="frame-image"
+      style={{
+        backgroundImage: `url(${url})`,
+        opacity: layer.opacity,
+        filter: `saturate(${layer.saturation}) brightness(${1 - layer.dim * 0.6})`,
+        backgroundSize: `${layer.zoom * 100}%`,
+        backgroundPosition: `${layer.x}% ${layer.y}%`
+      }}
+    />
+  )
+}
+
 export function WindowStyleLayers({
   style,
   accent
@@ -64,21 +83,9 @@ export function WindowStyleLayers({
           opacity: style.background.opacity
         }}
       />
-      {style.images.map((image, index) =>
-        image.assetId ? (
-          <div
-            className="frame-image"
-            key={`${image.assetId}-${index}`}
-            data-asset={image.assetId}
-            style={{
-              opacity: image.opacity,
-              filter: `saturate(${image.saturation}) brightness(${1 - image.dim * 0.6})`,
-              backgroundSize: `${image.zoom * 100}%`,
-              backgroundPosition: `${image.x}% ${image.y}%`
-            }}
-          />
-        ) : null
-      )}
+      {style.images.map((image, index) => (
+        <StyleImage key={`${image.assetId ?? 'empty'}-${index}`} layer={image} />
+      ))}
       {accent && style.accent.enabled && <div className="frame-accent" style={accentStyle} />}
     </div>
   )

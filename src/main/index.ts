@@ -1,5 +1,6 @@
 import { app, desktopCapturer, session } from 'electron'
 import { join } from 'node:path'
+import { AssetStore } from './assets'
 import { registerIpc } from './ipc'
 import { MusicService } from './music'
 import { Store } from './store'
@@ -15,6 +16,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   const store = new Store()
+  const assets = new AssetStore()
   const music = new MusicService()
   const weather = new WeatherService()
   let manager: WidgetManager | null = null
@@ -57,7 +59,7 @@ if (!app.requestSingleInstanceLock()) {
     music.onUpdate(snapshot => active.broadcast('music:sample', snapshot))
     const monitor = new SystemMonitor(sample => active.broadcast('system:sample', sample))
 
-    registerIpc({ store, manager: active, monitor, music, weather })
+    registerIpc({ store, manager: active, monitor, music, weather, assets })
     new AppTray(active, store).create()
     active.restore()
     monitor.start(store.state.system.intervalMs)

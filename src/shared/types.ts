@@ -71,6 +71,15 @@ export interface WindowStylePreset {
   style: WindowStyle
 }
 
+export interface ImageAsset {
+  id: string
+  name: string
+  width: number
+  height: number
+  createdAt: number
+  thumb?: string
+}
+
 export interface WidgetPlacement {
   /** null — позиция по умолчанию (правый верхний угол). */
   x: number | null

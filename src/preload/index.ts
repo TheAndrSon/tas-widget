@@ -4,6 +4,7 @@ import type {
   City,
   EqualizerInstance,
   EqualizerInstancePatch,
+  ImageAsset,
   MusicAction,
   MusicSnapshot,
   SettingsPatch,
@@ -45,6 +46,10 @@ const api = {
     ipcRenderer.invoke('window:setLock', target, locked),
   setWindowLayer: (target: WindowTarget, layer: WindowLayer): Promise<boolean> =>
     ipcRenderer.invoke('window:setLayer', target, layer),
+  listImages: (): Promise<ImageAsset[]> => ipcRenderer.invoke('image:list'),
+  addImage: (): Promise<ImageAsset | null> => ipcRenderer.invoke('image:add'),
+  getImage: (id: string): Promise<string | null> => ipcRenderer.invoke('image:get', id),
+  removeImage: (id: string): Promise<boolean> => ipcRenderer.invoke('image:remove', id),
   setWindowStyle: (target: WindowTarget, style: WindowStyle): Promise<boolean> =>
     ipcRenderer.invoke('window:setStyle', target, style),
   saveStyle: (name: string, style: WindowStyle): Promise<WindowStylePreset | null> =>

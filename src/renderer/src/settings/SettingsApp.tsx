@@ -4,6 +4,7 @@ import type {
   AppSettings,
   City,
   EqualizerSettings,
+  ImageAsset,
   SettingsPatch,
   VisualizerSettings,
   WeatherInstancePatch,
@@ -220,6 +221,14 @@ function WindowStyleControls({
   refresh: () => Promise<void>
 }): ReactElement {
   const [name, setName] = useState('')
+  const [assets, setAssets] = useState<ImageAsset[]>([])
+
+  useEffect(() => {
+    window.api
+      .listImages()
+      .then(items => setAssets(items))
+      .catch(() => undefined)
+  }, [])
 
   const apply = (next: WindowStyle): void => {
     void window.api.setWindowStyle(target, next).then(refresh)
@@ -231,6 +240,49 @@ function WindowStyleControls({
     patch({ glow: { ...style.glow, ...next } })
   const patchAccent = (next: Partial<WindowStyle['accent']>): void =>
     patch({ accent: { ...style.accent, ...next } })
+
+  const patchImage = (index: number, next: Partial<WindowStyle['images'][number]>): void => {
+    patch({
+      images: style.images.map((image, itemIndex) =>
+        itemIndex === index ? { ...image, ...next } : image
+      )
+    })
+  }
+
+  const addImageLayer = (assetId: string | null = null): void => {
+    if (style.images.length >= 2) return
+    patch({
+      images: [
+        ...style.images,
+        { assetId, zoom: 1, x: 50, y: 50, opacity: 1, dim: 0, saturation: 1 }
+      ]
+    })
+  }
+
+  const removeImageLayer = (index: number): void => {
+    patch({ images: style.images.filter((_, itemIndex) => itemIndex !== index) })
+  }
+
+  const moveImageLayer = (index: number, direction: -1 | 1): void => {
+    const target = index + direction
+    if (target < 0 || target >= style.images.length) return
+    const images = [...style.images]
+    const [item] = images.splice(index, 1)
+    images.splice(target, 0, item)
+    patch({ images })
+  }
+
+  const uploadImage = async (index: number): Promise<void> => {
+    const asset = await window.api.addImage()
+    if (!asset) return
+    setAssets(current => [asset, ...current.filter(item => item.id !== asset.id)])
+    patchImage(index, { assetId: asset.id })
+  }
+
+  const useAsset = (asset: ImageAsset): void => {
+    if (style.images.length < 2) addImageLayer(asset.id)
+    else patchImage(style.images.length - 1, { assetId: asset.id })
+  }
 
   return (
     <>
@@ -373,6 +425,193 @@ function WindowStyleControls({
           onChange={opacity => patch({ background: { ...style.background, opacity } })}
           format={item => `${Math.round(item * 100)}%`}
         />
+      </div>
+
+      <div className="row row--stacked">
+        <div className="row__text">
+          <span className="row__label">Картинки</span>
+          <span className="row__hint">
+            До двух слоёв. Оригиналы хранятся в библиотеке и переиспользуются
+          </span>
+        </div>
+
+        {style.images.map((image, index) => {
+          const asset = assets.find(item => item.id === image.assetId)
+          return (
+            <div className="image-layer" key={index}>
+              <div className="image-layer__head">
+                <span>Слой {index + 1}</span>
+                <div className="image-layer__actions">
+                  <button
+                    type="button"
+                    disabled={index === 0}
+                    onClick={() => moveImageLayer(index, -1)}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    disabled={index === style.images.length - 1}
+                    onClick={() => moveImageLayer(index, 1)}
+                  >
+                    ↓
+                  </button>
+                  <button type="button" onClick={() => removeImageLayer(index)}>
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              <div
+                className="image-preview"
+                style={
+                  asset?.thumb
+                    ? {
+                        backgroundImage: `url(${asset.thumb})`,
+                        backgroundSize: `${image.zoom * 100}%`,
+                        backgroundPosition: `${image.x}% ${image.y}%`,
+                        opacity: image.opacity,
+                        filter: `saturate(${image.saturation}) brightness(${1 - image.dim * 0.6})`
+                      }
+                    : undefined
+                }
+              >
+                {!asset && <span>Картинка не выбрана</span>}
+              </div>
+
+              <div className="image-layer__row">
+                <select
+                  className="select"
+                  value={image.assetId ?? ''}
+                  onChange={event => patchImage(index, { assetId: event.target.value || null })}
+                >
+                  <option value="">— не выбрана —</option>
+                  {assets.map(item => (
+                    <option value={item.id} key={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="style-button"
+                  onClick={() => void uploadImage(index)}
+                >
+                  Загрузить…
+                </button>
+              </div>
+
+              <div className="image-layer__grid">
+                <label>
+                  Зум
+                  <Slider
+                    min={1}
+                    max={6}
+                    step={0.05}
+                    value={image.zoom}
+                    onChange={zoom => patchImage(index, { zoom })}
+                    format={item => `${item.toFixed(2)}×`}
+                  />
+                </label>
+                <label>
+                  По X
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={image.x}
+                    onChange={x => patchImage(index, { x })}
+                    format={item => `${item}%`}
+                  />
+                </label>
+                <label>
+                  По Y
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={image.y}
+                    onChange={y => patchImage(index, { y })}
+                    format={item => `${item}%`}
+                  />
+                </label>
+                <label>
+                  Прозрачность
+                  <Slider
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={image.opacity}
+                    onChange={opacity => patchImage(index, { opacity })}
+                    format={item => `${Math.round(item * 100)}%`}
+                  />
+                </label>
+                <label>
+                  Затемнение
+                  <Slider
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={image.dim}
+                    onChange={dim => patchImage(index, { dim })}
+                    format={item => `${Math.round(item * 100)}%`}
+                  />
+                </label>
+                <label>
+                  Насыщенность
+                  <Slider
+                    min={0}
+                    max={2}
+                    step={0.01}
+                    value={image.saturation}
+                    onChange={saturation => patchImage(index, { saturation })}
+                    format={item => `${Math.round(item * 100)}%`}
+                  />
+                </label>
+              </div>
+            </div>
+          )
+        })}
+
+        {style.images.length < 2 && (
+          <button type="button" className="style-button" onClick={() => addImageLayer()}>
+            + Добавить слой
+          </button>
+        )}
+
+        {assets.length > 0 && (
+          <div className="image-library">
+            <span className="row__hint">Библиотека оригиналов</span>
+            <div className="image-library__grid">
+              {assets.map(asset => (
+                <div className="image-library__item" key={asset.id}>
+                  <button
+                    type="button"
+                    className="image-library__thumb"
+                    title={`Использовать «${asset.name}»`}
+                    style={{ backgroundImage: asset.thumb ? `url(${asset.thumb})` : undefined }}
+                    onClick={() => useAsset(asset)}
+                  />
+                  <span title={asset.name}>
+                    {asset.name} · {asset.width}×{asset.height}
+                  </span>
+                  <button
+                    type="button"
+                    className="image-library__remove"
+                    title="Удалить оригинал"
+                    onClick={() =>
+                      void window.api
+                        .removeImage(asset.id)
+                        .then(() => setAssets(items => items.filter(item => item.id !== asset.id)))
+                    }
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="row">

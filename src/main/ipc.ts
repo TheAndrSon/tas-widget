@@ -13,6 +13,7 @@ import type {
   WindowTarget
 } from '../shared/types'
 import { WIDGET_IDS } from '../shared/widgets'
+import type { AssetStore } from './assets'
 import type { MusicService } from './music'
 import { openSettingsWindow } from './settings-window'
 import type { Store } from './store'
@@ -26,9 +27,10 @@ interface Deps {
   monitor: SystemMonitor
   music: MusicService
   weather: WeatherService
+  assets: AssetStore
 }
 
-export function registerIpc({ store, manager, monitor, music, weather }: Deps): void {
+export function registerIpc({ store, manager, monitor, music, weather, assets }: Deps): void {
   ipcMain.handle('settings:get', () => store.state)
 
   ipcMain.handle('settings:patch', (_event, patch: SettingsPatch) => {
@@ -154,6 +156,15 @@ export function registerIpc({ store, manager, monitor, music, weather }: Deps): 
     manager.broadcast('settings:changed', store.state)
     return true
   })
+
+  ipcMain.handle('image:list', () => assets.list())
+  ipcMain.handle('image:add', () => assets.add())
+  ipcMain.handle('image:get', (_event, id: unknown) =>
+    typeof id === 'string' ? assets.dataUrl(id) : null
+  )
+  ipcMain.handle('image:remove', (_event, id: unknown) =>
+    typeof id === 'string' ? assets.remove(id) : false
+  )
 
   ipcMain.handle('app:displays', () =>
     screen.getAllDisplays().map(display => ({

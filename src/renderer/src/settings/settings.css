@@ -720,6 +720,147 @@ body {
   color: var(--text);
 }
 
+.image-layer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.image-layer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.image-layer__actions {
+  display: flex;
+  gap: 4px;
+}
+
+.image-layer__actions button {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.image-layer__actions button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.image-preview {
+  display: grid;
+  place-items: center;
+  height: 86px;
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.35);
+  background-repeat: no-repeat;
+  color: var(--muted-dim);
+  font-size: 10.5px;
+}
+
+.image-layer__row {
+  display: flex;
+  gap: 6px;
+}
+
+.image-layer__row .select {
+  flex: 1;
+  min-width: 0;
+}
+
+.image-layer__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.image-layer__grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.image-layer__grid .range {
+  width: 100%;
+}
+
+.image-library {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.image-library__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.image-library__item {
+  position: relative;
+  width: 118px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 9px;
+  color: var(--muted);
+  overflow: hidden;
+}
+
+.image-library__item > span {
+  display: block;
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-library__thumb {
+  display: block;
+  width: 100%;
+  height: 58px;
+  margin-bottom: 3px;
+  border: none;
+  border-radius: 5px;
+  background-color: rgba(0, 0, 0, 0.3);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+}
+
+.image-library__remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .global-actions {
   display: flex;
   flex-direction: column;
