@@ -13,13 +13,27 @@ import type {
   WidgetType
 } from './types'
 import { WIDGET_TYPES } from './types'
-import { DEFAULT_VISUALIZER, createDefaultStyle, normalizeStyle, normalizeSlot, normalizeVisualizer } from './presets'
+import {
+  DEFAULT_VISUALIZER,
+  createDefaultStyle,
+  normalizeStyle,
+  normalizeSlot,
+  normalizeVisualizer
+} from './presets'
 import { DEFAULT_ENABLED, DEFAULT_SETTINGS } from './default-design'
 
 export const STATE_VERSION = 7
 
 export const CITY_PRESETS: City[] = [
-  { id: 524901, name: 'Москва', country: 'Россия', admin1: 'Москва', lat: 55.7558, lon: 37.6173, timezone: 'Europe/Moscow' },
+  {
+    id: 524901,
+    name: 'Москва',
+    country: 'Россия',
+    admin1: 'Москва',
+    lat: 55.7558,
+    lon: 37.6173,
+    timezone: 'Europe/Moscow'
+  },
   {
     id: 498817,
     name: 'Санкт-Петербург',
@@ -56,12 +70,41 @@ export const CITY_PRESETS: City[] = [
     lon: 60.6125,
     timezone: 'Asia/Yekaterinburg'
   },
-  { id: 2643743, name: 'Лондон', country: 'Великобритания', lat: 51.5085, lon: -0.1257, timezone: 'Europe/London' },
-  { id: 5128581, name: 'Нью-Йорк', country: 'США', lat: 40.7143, lon: -74.006, timezone: 'America/New_York' },
-  { id: 1850147, name: 'Токио', country: 'Япония', lat: 35.6895, lon: 139.6917, timezone: 'Asia/Tokyo' }
+  {
+    id: 2643743,
+    name: 'Лондон',
+    country: 'Великобритания',
+    lat: 51.5085,
+    lon: -0.1257,
+    timezone: 'Europe/London'
+  },
+  {
+    id: 5128581,
+    name: 'Нью-Йорк',
+    country: 'США',
+    lat: 40.7143,
+    lon: -74.006,
+    timezone: 'America/New_York'
+  },
+  {
+    id: 1850147,
+    name: 'Токио',
+    country: 'Япония',
+    lat: 35.6895,
+    lon: 139.6917,
+    timezone: 'Asia/Tokyo'
+  }
 ]
 
-export const CUSTOM_DATE_COLORS = ['#ff8f8f', '#ffc46b', '#ffe27a', '#9be7a4', '#7fd4ff', '#b3a8ff', '#f5a3d0']
+export const CUSTOM_DATE_COLORS = [
+  '#ff8f8f',
+  '#ffc46b',
+  '#ffe27a',
+  '#9be7a4',
+  '#7fd4ff',
+  '#b3a8ff',
+  '#f5a3d0'
+]
 
 export const DEFAULT_SIMS_MOOD: SimsMood = {
   mood: 72,
@@ -71,7 +114,23 @@ export const DEFAULT_SIMS_MOOD: SimsMood = {
   social: 58,
   hygiene: 74,
   points: 0,
-  updatedAt: Date.now()
+  updatedAt: Date.now(),
+  stats: {
+    actions: 0,
+    days: 0,
+    goodDays: 0,
+    perfectDays: 0,
+    bestMood: 50,
+    pointsEarned: 0,
+    worsenCount: 0,
+    needActions: { hunger: 0, energy: 0, fun: 0, social: 0, hygiene: 0 },
+    needMinToday: { hunger: 100, energy: 100, fun: 100, social: 100, hygiene: 100 },
+    needStreaks: { hunger: 0, energy: 0, fun: 0, social: 0, hygiene: 0 },
+    lastDay: new Date().toISOString().slice(0, 10),
+    lastPenaltyAt: 0,
+    lastBonusAt: 0
+  },
+  unlocked: []
 }
 
 export function todayIso(): string {
@@ -162,7 +221,10 @@ export function clampInstance(instance: WidgetInstance): WidgetInstance {
 export function normalizeSettings(type: WidgetType, input: WidgetSettings): WidgetSettings {
   const defaults = createDefaultSettings(type)
   if (input && typeof input === 'object') {
-    const merged = { ...defaults, ...(input as unknown as Record<string, unknown>) } as Record<string, unknown>
+    const merged = { ...defaults, ...(input as unknown as Record<string, unknown>) } as Record<
+      string,
+      unknown
+    >
     if (type === 'music') {
       merged.visualizer = normalizeVisualizer(
         (input as MusicSettings).visualizer ?? DEFAULT_VISUALIZER

@@ -83,7 +83,13 @@ const api: WidgetApi = {
 
   searchCity: (query: string) => ipcRenderer.invoke('weather:search', query) as Promise<City[]>,
   getWeather: (city: City, units: WeatherUnits, provider: WeatherProvider, yandexKey?: string) =>
-    ipcRenderer.invoke('weather:forecast', city, units, provider, yandexKey) as Promise<WeatherResult>,
+    ipcRenderer.invoke(
+      'weather:forecast',
+      city,
+      units,
+      provider,
+      yandexKey
+    ) as Promise<WeatherResult>,
   getFinance: (codes: string[]) =>
     ipcRenderer.invoke('finance:get', codes) as Promise<FinanceResult>,
   getTwitch: (settings: { channels: string[]; clientId: string; clientSecret: string }) =>
@@ -105,14 +111,17 @@ const api: WidgetApi = {
 
   saveZodiacPack: (pack: ZodiacPack) =>
     ipcRenderer.invoke('zodiac:save', pack) as Promise<ZodiacPack>,
-  deleteZodiacPack: (id: string) =>
-    ipcRenderer.invoke('zodiac:delete', id) as Promise<boolean>,
+  deleteZodiacPack: (id: string) => ipcRenderer.invoke('zodiac:delete', id) as Promise<boolean>,
   saveTarotDeck: (deck: TarotDeck) =>
     ipcRenderer.invoke('tarot:save-deck', deck) as Promise<TarotDeck>,
-  deleteTarotDeck: (id: string) =>
-    ipcRenderer.invoke('tarot:delete-deck', id) as Promise<boolean>,
-  simsAction: (groupId: string, action: SimsAction, difficulty?: 'classic' | 'hard') =>
-    ipcRenderer.invoke('sims:action', groupId, action, difficulty) as Promise<PersistedState>,
+  deleteTarotDeck: (id: string) => ipcRenderer.invoke('tarot:delete-deck', id) as Promise<boolean>,
+  simsAction: (
+    groupId: string,
+    action: SimsAction,
+    difficulty?: 'classic' | 'hard',
+    need?: 'hunger' | 'energy' | 'fun' | 'social' | 'hygiene'
+  ) =>
+    ipcRenderer.invoke('sims:action', groupId, action, difficulty, need) as Promise<PersistedState>,
   openSimsMenu: (id: string) => ipcRenderer.send('sims:open-menu', id),
   closeSimsMenu: () => ipcRenderer.send('sims:close-menu'),
   alignEqualizer: (id: string, edge: 'top' | 'bottom' | 'left' | 'right') =>
@@ -121,8 +130,7 @@ const api: WidgetApi = {
   onSelectTab: (callback) => subscribe<SettingsTab>('settings:select', callback),
   onSettingsFocus: (callback) => subscribe<string | null>('settings:focus', callback),
   setSettingsTab: (tab: SettingsTab) => ipcRenderer.send('settings:active', tab),
-  onCursor: (callback) =>
-    subscribe<{ x: number; y: number }>('cursor:position', callback),
+  onCursor: (callback) => subscribe<{ x: number; y: number }>('cursor:position', callback),
   getRuntime: () => ipcRenderer.invoke('app:runtime') as Promise<RuntimeInfo>,
   openExternal: (url: string) => ipcRenderer.send('external:open', url),
   quit: () => ipcRenderer.send('app:quit')

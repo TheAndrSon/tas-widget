@@ -244,7 +244,9 @@ export function registerIpc(ctx: AppContext): void {
   ipcMain.handle('music:get', () => ctx.music.getSnapshot())
 
   ipcMain.handle('finance:get', (_event, codes: unknown) => {
-    return ctx.finance.get(Array.isArray(codes) ? codes.filter((code): code is string => typeof code === 'string') : [])
+    return ctx.finance.get(
+      Array.isArray(codes) ? codes.filter((code): code is string => typeof code === 'string') : []
+    )
   })
 
   ipcMain.handle('twitch:get', (_event, settings: unknown) => {
@@ -284,9 +286,7 @@ export function registerIpc(ctx: AppContext): void {
       const options: Electron.OpenDialogOptions = {
         title: 'Выберите изображение',
         properties: ['openFile'],
-        filters: [
-          { name: 'Изображения', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'] }
-        ]
+        filters: [{ name: 'Изображения', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'] }]
       }
       const parent = ctx.settingsWindow.window
       const result = parent
@@ -372,21 +372,30 @@ export function registerIpc(ctx: AppContext): void {
     return removed
   })
 
-  ipcMain.handle('sims:action', (_event, groupId: unknown, action: unknown, difficulty: unknown) => {
-    if (typeof groupId !== 'string') return ctx.store.state
-    const mood: SimsMood = ctx.store.simsAction(
-      groupId,
-      action as SimsAction,
-      difficulty === 'hard' ? 'hard' : 'classic'
-    )
-    for (const widget of ctx.store.state.widgets) {
-      if (widget.type === 'sims' && (widget.settings as { groupId?: string }).groupId === groupId) {
-        ctx.widgets.sync(widget.id)
+  ipcMain.handle(
+    'sims:action',
+    (_event, groupId: unknown, action: unknown, difficulty: unknown, need: unknown) => {
+      if (typeof groupId !== 'string') return ctx.store.state
+      const mood: SimsMood = ctx.store.simsAction(
+        groupId,
+        action as SimsAction,
+        difficulty === 'hard' ? 'hard' : 'classic',
+        typeof need === 'string'
+          ? (need as 'hunger' | 'energy' | 'fun' | 'social' | 'hygiene')
+          : undefined
+      )
+      for (const widget of ctx.store.state.widgets) {
+        if (
+          widget.type === 'sims' &&
+          (widget.settings as { groupId?: string }).groupId === groupId
+        ) {
+          ctx.widgets.sync(widget.id)
+        }
       }
+      ctx.refresh()
+      return { ...ctx.store.state, sims: { ...ctx.store.state.sims, [groupId]: mood } }
     }
-    ctx.refresh()
-    return { ...ctx.store.state, sims: { ...ctx.store.state.sims, [groupId]: mood } }
-  })
+  )
 
   ipcMain.on('sims:open-menu', (_event, id: unknown) => {
     if (typeof id !== 'string') return

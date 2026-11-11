@@ -13,6 +13,7 @@ import {
 } from '../shared/defaults'
 import { DEFAULT_BACKGROUND_IMAGE_ID, DEFAULT_ENABLED } from '../shared/default-design'
 import { deepMerge } from '../shared/merge'
+import { simsDo } from '../shared/sims'
 import { normalizeSlot, normalizeStyle } from '../shared/presets'
 import type {
   GeneralSettings,
@@ -72,7 +73,10 @@ export class Store {
       this.ensureTypes(state)
       return state
     } catch (error) {
-      console.error('[store] не удалось прочитать состояние, использую значения по умолчанию', error)
+      console.error(
+        '[store] не удалось прочитать состояние, использую значения по умолчанию',
+        error
+      )
       return defaults
     }
   }
@@ -124,11 +128,11 @@ export class Store {
           locked: Boolean(entry.locked),
           layer: entry.layer === 'desktop' ? 'desktop' : 'always',
           opacity: entry.opacity ?? 1,
-          scale: migrateV6 ? 1 : entry.scale ?? 1,
+          scale: migrateV6 ? 1 : (entry.scale ?? 1),
           position: entry.position ?? null,
-          contentSize: migrateV6 ? null : entry.contentSize ?? null,
-          manualSize: migrateV6 ? null : entry.manualSize ?? null,
-          displayId: migrateV6 ? null : entry.displayId ?? null
+          contentSize: migrateV6 ? null : (entry.contentSize ?? null),
+          manualSize: migrateV6 ? null : (entry.manualSize ?? null),
+          displayId: migrateV6 ? null : (entry.displayId ?? null)
         })
       )
     }
@@ -166,7 +170,10 @@ export class Store {
     return {
       version: STATE_VERSION,
       widgets,
-      general: deepMerge(createDefaultGeneral(), (legacySettings.general as Partial<GeneralSettings>) ?? {}),
+      general: deepMerge(
+        createDefaultGeneral(),
+        (legacySettings.general as Partial<GeneralSettings>) ?? {}
+      ),
       customPresets: [],
       images: [],
       zodiacPacks: [],
@@ -180,7 +187,9 @@ export class Store {
   private normalizePresets(input: StylePreset[] | undefined): StylePreset[] {
     if (!Array.isArray(input)) return []
     return input
-      .filter((preset) => preset && typeof preset.id === 'string' && typeof preset.name === 'string')
+      .filter(
+        (preset) => preset && typeof preset.id === 'string' && typeof preset.name === 'string'
+      )
       .map((preset) => ({
         id: preset.id,
         name: preset.name.slice(0, 60),
@@ -266,7 +275,11 @@ export class Store {
           social: clampMood(Number(mood.social ?? 65)),
           hygiene: clampMood(Number(mood.hygiene ?? 65)),
           points: Math.max(0, Math.round(Number(mood.points ?? 0))),
-          updatedAt: Number(mood.updatedAt ?? Date.now())
+          updatedAt: Number(mood.updatedAt ?? Date.now()),
+          stats: { ...DEFAULT_SIMS_MOOD.stats, ...(mood.stats ?? {}) },
+          unlocked: Array.isArray(mood.unlocked)
+            ? mood.unlocked.filter((id): id is string => typeof id === 'string')
+            : []
         }
       }
     }
@@ -348,9 +361,7 @@ export class Store {
     if (this.countOfType(type) >= MAX_COPIES_PER_TYPE) return null
     const source = sourceId ? this.get(sourceId) : this.state.widgets.find((w) => w.type === type)
     const id = this.nextId(this.state, type)
-    const settings = source
-      ? cloneWidgetSettings(source.settings)
-      : createDefaultSettings(type)
+    const settings = source ? cloneWidgetSettings(source.settings) : createDefaultSettings(type)
     const instance = createWidgetInstance(type, id, settings)
     if (source) instance.style = structuredClone(source.style)
     instance.enabled = true
@@ -465,58 +476,14 @@ export class Store {
     return this.state.tarotDecks.length !== before
   }
 
-  simsAction(groupId: string, action: SimsAction, difficulty: SimsDifficulty = 'classic'): SimsMood {
+  simsAction(
+    groupId: string,
+    action: SimsAction,
+    difficulty: SimsDifficulty = 'classic',
+    need?: 'hunger' | 'energy' | 'fun' | 'social' | 'hygiene'
+  ): SimsMood {
     const current = this.state.sims[groupId] ?? structuredClone(DEFAULT_SIMS_MOOD)
-    const hard = difficulty === 'hard'
-    const changes: Record<SimsAction, Partial<SimsMood>> = {
-      feed: { hunger: 22, mood: 4 },
-      play: { fun: 24, energy: -8, mood: 8 },
-      sleep: { energy: 30, hunger: -6, mood: 4 },
-      shower: { hygiene: 28, mood: 3 },
-      chat: { social: 24, mood: 7 },
-      worsen: { hunger: -14, energy: -10, fun: -12, social: -10, hygiene: -8, mood: -18 },
-      reset: { hunger: 65, energy: 70, fun: 68, social: 62, hygiene: 72, mood: 72 }
-    }
-    const patch = changes[action] ?? {}
-    if (action === 'reset') {
-      const reset: SimsMood = {
-        mood: 72,
-        hunger: 65,
-        energy: 70,
-        fun: 68,
-        social: 62,
-        hygiene: 72,
-        points: 0,
-        updatedAt: Date.now()
-      }
-      this.state.sims[groupId] = reset
-      this.scheduleSave()
-      return reset
-    }
-    const next: SimsMood = {
-      mood: clampMood(current.mood + (patch.mood ?? 0)),
-      hunger: clampMood(current.hunger + (patch.hunger ?? 0)),
-      energy: clampMood(current.energy + (patch.energy ?? 0)),
-      fun: clampMood(current.fun + (patch.fun ?? 0)),
-      social: clampMood(current.social + (patch.social ?? 0)),
-      hygiene: clampMood(current.hygiene + (patch.hygiene ?? 0)),
-      points: current.points ?? 0,
-      updatedAt: Date.now()
-    }
-    // общее настроение — среднее по потребностям, чтобы виджеты были согласованы
-    const average = (next.hunger + next.energy + next.fun + next.social + next.hygiene) / 5
-    next.mood = clampMood(average)
-
-    if (action === 'worsen') {
-      next.points = Math.max(0, next.points - (hard ? 12 : 6))
-    } else {
-      const lowNeed = [next.hunger, next.energy, next.fun, next.social, next.hygiene].some(
-        (value) => value < 20
-      )
-      const gain = hard ? (lowNeed ? 2 : 5) : 12
-      next.points += gain
-    }
-
+    const next = simsDo(current, action, difficulty, need)
     this.state.sims[groupId] = next
     this.scheduleSave()
     return next
@@ -576,7 +543,10 @@ export class Store {
     const instance = this.get(id)
     if (!instance) return
     instance.manualSize = size
-      ? { width: Math.max(80, Math.round(size.width)), height: Math.max(60, Math.round(size.height)) }
+      ? {
+          width: Math.max(80, Math.round(size.width)),
+          height: Math.max(60, Math.round(size.height))
+        }
       : null
     this.scheduleSave()
   }

@@ -1638,12 +1638,15 @@ function SimsPanel({ instance, patchSettings }: PanelProps): JSX.Element {
           onChange={(mode) => patchSettings({ mode })}
         />
       </Row>
-      <Row label="Сложность" hint="В хардмоде меньше баллов за действия и жёстче последствия">
+      <Row
+        label="Сложность"
+        hint="Лайт: +24 и +2★. Хард: +16 и +1★, побочный минус и быстрее просадка"
+      >
         <Segmented
           value={sims.difficulty}
           options={[
-            { value: 'classic', label: 'База' },
-            { value: 'hard', label: 'Хардмод' }
+            { value: 'classic', label: 'Лайт' },
+            { value: 'hard', label: 'Хард' }
           ]}
           onChange={(difficulty) => patchSettings({ difficulty })}
         />

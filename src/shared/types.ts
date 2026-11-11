@@ -428,6 +428,22 @@ export interface SimsSettings {
   interactiveWhenLocked: boolean
 }
 
+export interface SimsStats {
+  actions: number
+  days: number
+  goodDays: number
+  perfectDays: number
+  bestMood: number
+  pointsEarned: number
+  worsenCount: number
+  needActions: Record<'hunger' | 'energy' | 'fun' | 'social' | 'hygiene', number>
+  needMinToday: Record<'hunger' | 'energy' | 'fun' | 'social' | 'hygiene', number>
+  needStreaks: Record<'hunger' | 'energy' | 'fun' | 'social' | 'hygiene', number>
+  lastDay: string
+  lastPenaltyAt: number
+  lastBonusAt: number
+}
+
 export interface SimsMood {
   /** 0..100 */
   mood: number
@@ -439,6 +455,8 @@ export interface SimsMood {
   /** игровые баллы, общие для группы */
   points: number
   updatedAt: number
+  stats: SimsStats
+  unlocked: string[]
 }
 
 export interface FinanceSettings {
@@ -893,7 +911,8 @@ export interface WidgetApi {
   simsAction(
     groupId: string,
     action: SimsAction,
-    difficulty?: SimsDifficulty
+    difficulty?: SimsDifficulty,
+    need?: 'hunger' | 'energy' | 'fun' | 'social' | 'hygiene'
   ): Promise<PersistedState>
   openSimsMenu(id: string): void
   closeSimsMenu(): void

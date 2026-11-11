@@ -1,6 +1,6 @@
-import { useEffect, useRef, type JSX } from 'react'
+import { useEffect, useRef, useState, type JSX } from 'react'
 import type { SimsAction, SimsSettings } from '@shared/types'
-import { NEEDS, decayMood, moodColor, moodLabel, moodState } from '@shared/sims'
+import { NEEDS, SIMS_ACHIEVEMENTS, decayMood, moodColor, moodLabel, moodState } from '@shared/sims'
 import { useAppState } from '../hooks'
 
 export function SimsMenu({ instanceId }: { instanceId: string }): JSX.Element {
@@ -9,6 +9,8 @@ export function SimsMenu({ instanceId }: { instanceId: string }): JSX.Element {
   const settings = instance?.settings as SimsSettings | undefined
   const stored = settings ? state?.sims[settings.groupId] : undefined
   const leaveTimer = useRef<number | null>(null)
+  const [worsen, setWorsen] = useState(false)
+  const [showRewards, setShowRewards] = useState(false)
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
@@ -41,9 +43,12 @@ export function SimsMenu({ instanceId }: { instanceId: string }): JSX.Element {
     )
   }
 
-  const mood = decayMood(stored)
-  const act = (action: SimsAction): void => {
-    void window.widgets.simsAction(settings.groupId, action, settings.difficulty)
+  const mood = decayMood(stored, Date.now(), settings.difficulty)
+  const act = (
+    action: SimsAction,
+    need?: 'hunger' | 'energy' | 'fun' | 'social' | 'hygiene'
+  ): void => {
+    void window.widgets.simsAction(settings.groupId, action, settings.difficulty, need)
   }
 
   return (
@@ -71,8 +76,8 @@ export function SimsMenu({ instanceId }: { instanceId: string }): JSX.Element {
             <div className="sims-menu-need" key={need.key}>
               <button
                 type="button"
-                className="sims-menu-need__action"
-                onClick={() => act(need.action)}
+                className={`sims-menu-need__action${worsen ? ' is-worsen' : ''}`}
+                onClick={() => act(worsen ? 'worsen' : need.action, need.key)}
                 title={`${need.label}: ${need.action}`}
               >
                 {need.label}
@@ -89,13 +94,39 @@ export function SimsMenu({ instanceId }: { instanceId: string }): JSX.Element {
         </div>
 
         <div className="sims-menu__footer">
-          <button type="button" className="sims-menu__worsen" onClick={() => act('worsen')}>
-            Ухудшить
+          <button
+            type="button"
+            className={`sims-menu__worsen${worsen ? ' is-active' : ''}`}
+            onClick={() => setWorsen((value) => !value)}
+          >
+            {worsen ? 'Улучшить' : 'Ухудшить'}
           </button>
-          {settings.showPoints && (
-            <span className="sims-menu__points">★ {mood.points}</span>
-          )}
+          <button
+            type="button"
+            className="sims-menu__rewards"
+            onClick={() => setShowRewards((value) => !value)}
+          >
+            🏆 {(mood.unlocked ?? []).length}/{SIMS_ACHIEVEMENTS.length}
+          </button>
+          {settings.showPoints && <span className="sims-menu__points">★ {mood.points}</span>}
         </div>
+
+        {showRewards && (
+          <div className="sims-menu__rewards-list">
+            {SIMS_ACHIEVEMENTS.map((item) => {
+              const done = (mood.unlocked ?? []).includes(item.id)
+              return (
+                <div className={`sims-menu-reward${done ? ' is-done' : ''}`} key={item.id}>
+                  <span>{done ? '🏆' : '☆'}</span>
+                  <div>
+                    <strong>{item.name}</strong>
+                    <small>{item.hint}</small>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

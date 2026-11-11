@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties, type JSX } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type JSX } from 'react'
 import type { SimsAction, SimsSettings } from '@shared/types'
 import { NEEDS, decayMood, moodColor, moodLabel, moodState } from '@shared/sims'
 import { useAppState } from '../../hooks'
@@ -7,7 +7,11 @@ function hexRgb(color: string): [number, number, number] {
   const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim())
   if (!match) return [126, 242, 155]
   let hex = match[1]
-  if (hex.length === 3) hex = hex.split('').map((char) => char + char).join('')
+  if (hex.length === 3)
+    hex = hex
+      .split('')
+      .map((char) => char + char)
+      .join('')
   return [
     Number.parseInt(hex.slice(0, 2), 16),
     Number.parseInt(hex.slice(2, 4), 16),
@@ -15,13 +19,7 @@ function hexRgb(color: string): [number, number, number] {
   ]
 }
 
-function PlumbobFaceted({
-  spinning,
-  color
-}: {
-  spinning: boolean
-  color: string
-}): JSX.Element {
+function PlumbobFaceted({ spinning, color }: { spinning: boolean; color: string }): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const spinRef = useRef(spinning)
   spinRef.current = spinning
@@ -95,9 +93,7 @@ function PlumbobFaceted({
       if (spinRef.current) angle += delta * 0.0015
       context.clearRect(0, 0, width, height)
       const rgb = hexRgb(colorRef.current)
-      const rotated = faces.map((face) =>
-        face.map((point) => rotateY(point, angle))
-      )
+      const rotated = faces.map((face) => face.map((point) => rotateY(point, angle)))
       const items = rotated.map((face) => {
         const a = face[0]
         const b = face[1]
@@ -133,7 +129,14 @@ function PlumbobFaceted({
         context.lineWidth = 0.7
         context.stroke()
       }
-      const glow = context.createRadialGradient(width * 0.5, height * 0.47, 0, width * 0.5, height * 0.47, 42)
+      const glow = context.createRadialGradient(
+        width * 0.5,
+        height * 0.47,
+        0,
+        width * 0.5,
+        height * 0.47,
+        42
+      )
       glow.addColorStop(0, 'rgba(255, 255, 255, 0.55)')
       glow.addColorStop(0.45, 'rgba(255, 255, 255, 0.16)')
       glow.addColorStop(1, 'rgba(255, 255, 255, 0)')
@@ -200,18 +203,25 @@ export function SimsWidget({
       </div>
     )
   }
-  const mood = decayMood(stored)
+  const [worsen, setWorsen] = useState(false)
+  const mood = decayMood(stored, Date.now(), settings.difficulty)
   const color = settings.colorMode === 'custom' ? settings.color : moodColor(mood.mood)
   const style = {
     '--sims-color': color,
     '--bling': String(settings.blingIntensity)
   } as CSSProperties
-  const act = (action: SimsAction): void => {
-    void window.widgets.simsAction(settings.groupId, action, settings.difficulty)
+  const act = (
+    action: SimsAction,
+    need?: 'hunger' | 'energy' | 'fun' | 'social' | 'hygiene'
+  ): void => {
+    void window.widgets.simsAction(settings.groupId, action, settings.difficulty, need)
   }
 
   return (
-    <div className={`sims${settings.mode === 'needs' ? ' sims--needs' : ' sims--plumbob'} sims-anim-${settings.animation}`} style={style}>
+    <div
+      className={`sims${settings.mode === 'needs' ? ' sims--needs' : ' sims--plumbob'} sims-anim-${settings.animation}`}
+      style={style}
+    >
       {settings.mode === 'needs' ? (
         <>
           <div className="sims__head">
@@ -282,10 +292,12 @@ export function SimsWidget({
           {settings.showPoints && <span className="sims__points">★ {mood.points}</span>}
           {settings.showDifficulty && (
             <span className={`sims__difficulty${settings.difficulty === 'hard' ? ' is-hard' : ''}`}>
-              {settings.difficulty === 'hard' ? 'хард' : 'база'}
+              {settings.difficulty === 'hard' ? 'хард' : 'лайт'}
             </span>
           )}
-          {settings.showMoodValue && <span className="sims__moodvalue">{Math.round(mood.mood)}</span>}
+          {settings.showMoodValue && (
+            <span className="sims__moodvalue">{Math.round(mood.mood)}</span>
+          )}
         </div>
       )}
 
@@ -296,20 +308,21 @@ export function SimsWidget({
               type="button"
               key={need.key}
               disabled={!interactive}
-              onClick={() => act(need.action)}
-              title={need.label}
+              onClick={() => act(worsen ? 'worsen' : need.action, need.key)}
+              title={worsen ? `Ухудшить: ${need.label}` : need.label}
+              className={worsen ? 'is-worsen' : ''}
             >
               {need.label}
             </button>
           ))}
           <button
             type="button"
-            className="sims__worsen"
+            className={`sims__worsen${worsen ? ' is-active' : ''}`}
             disabled={!interactive}
-            onClick={() => act('worsen')}
-            title="Ухудшить состояние"
+            onClick={() => setWorsen((value) => !value)}
+            title={worsen ? 'Вернуться к улучшению' : 'Ухудшить состояние'}
           >
-            Ухудшить
+            {worsen ? 'Улучшить' : 'Ухудшить'}
           </button>
         </div>
       )}
