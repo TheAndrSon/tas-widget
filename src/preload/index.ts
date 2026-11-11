@@ -8,6 +8,13 @@ import type {
   MusicAction,
   MusicSnapshot,
   SettingsPatch,
+  SimsAction,
+  SimsDifficulty,
+  SimsInstance,
+  SimsMode,
+  SimsNeed,
+  SimsSettings,
+  SimsState,
   SystemSample,
   WeatherInstance,
   WeatherInstancePatch,
@@ -77,6 +84,37 @@ const api = {
     ipcRenderer.invoke('equalizer:patch', id, patch) as Promise<EqualizerInstance | null>,
   centerEqualizer: (id: string): Promise<boolean> =>
     ipcRenderer.invoke('equalizer:center', id) as Promise<boolean>,
+  getSims: (): Promise<Record<string, SimsState>> => ipcRenderer.invoke('sims:get'),
+  onSimsChanged: (listener: (groups: Record<string, SimsState>) => void): (() => void) =>
+    subscribe('sims:changed', listener),
+  resetSims: (groupId: string): Promise<SimsState | null> =>
+    ipcRenderer.invoke('sims:reset', groupId),
+  addSims: (mode: SimsMode): Promise<SimsInstance | null> =>
+    ipcRenderer.invoke('sims:add', mode) as Promise<SimsInstance | null>,
+  removeSims: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke('sims:remove', id) as Promise<boolean>,
+  openSims: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke('sims:open', id) as Promise<boolean>,
+  closeSims: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke('sims:close', id) as Promise<boolean>,
+  patchSims: (
+    id: string,
+    patch: { settings?: Partial<SimsSettings>; groupId?: string }
+  ): Promise<SimsInstance | null> =>
+    ipcRenderer.invoke('sims:patch', id, patch) as Promise<SimsInstance | null>,
+  simsAction: (
+    groupId: string,
+    action: SimsAction,
+    need: SimsNeed,
+    difficulty: SimsDifficulty
+  ): Promise<SimsState | null> =>
+    ipcRenderer.invoke(
+      'sims:action',
+      groupId,
+      action,
+      need,
+      difficulty
+    ) as Promise<SimsState | null>,
   getMusic: (): Promise<MusicSnapshot> => ipcRenderer.invoke('music:get'),
   onMusicSample: (listener: (snapshot: MusicSnapshot) => void): (() => void) =>
     subscribe('music:sample', listener),

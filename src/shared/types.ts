@@ -71,6 +71,74 @@ export interface WindowStylePreset {
   style: WindowStyle
 }
 
+export type SimsMode = 'plumbob' | 'needs'
+export type SimsDifficulty = 'light' | 'hard'
+export type SimsNeed = 'hunger' | 'social' | 'hygiene' | 'energy' | 'fun'
+export type SimsAction = 'feed' | 'chat' | 'shower' | 'sleep' | 'play' | 'worsen'
+
+export interface SimsStats {
+  actions: number
+  days: number
+  goodDays: number
+  perfectDays: number
+  bestMood: number
+  pointsEarned: number
+  worsenCount: number
+  needActions: Record<SimsNeed, number>
+  needMinToday: Record<SimsNeed, number>
+  needStreaks: Record<SimsNeed, number>
+  lastDay: string
+  lastPenaltyAt: number
+  lastBonusAt: number
+}
+
+export interface SimsState {
+  groupId: string
+  hunger: number
+  social: number
+  hygiene: number
+  energy: number
+  fun: number
+  mood: number
+  points: number
+  updatedAt: number
+  stats: SimsStats
+  unlocked: string[]
+}
+
+export interface SimsSettings {
+  difficulty: SimsDifficulty
+  label: string
+  showLabel: boolean
+  showPoints: boolean
+  showDifficulty: boolean
+  showMoodValue: boolean
+  showNeeds: Record<SimsNeed, boolean>
+  animation: 'float' | 'spin' | 'pulse' | 'none'
+  bling: boolean
+  blingIntensity: number
+}
+
+export interface SimsInstance {
+  id: string
+  mode: SimsMode
+  groupId: string
+  x: number | null
+  y: number | null
+  width: number
+  height: number
+  enabled: boolean
+  locked: boolean
+  layer: WindowLayer
+  style: WindowStyle
+  settings: SimsSettings
+}
+
+export interface SimsStateRoot {
+  groups: Record<string, SimsState>
+  instances: SimsInstance[]
+}
+
 export interface ImageAsset {
   id: string
   name: string
@@ -262,6 +330,7 @@ export interface AppSettings {
   music: MusicSettings
   weather: WeatherState
   equalizer: EqualizerState
+  sims: SimsStateRoot
   customStyles: WindowStylePreset[]
 }
 

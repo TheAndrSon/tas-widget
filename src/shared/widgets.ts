@@ -6,7 +6,7 @@ export const WIDGETS: Record<WidgetId, WidgetMeta> = {
   music: { id: 'music', title: 'Музыка', width: 340, height: 150, ready: true },
   weather: { id: 'weather', title: 'Погода', width: 320, height: 300, ready: true },
   equalizer: { id: 'equalizer', title: 'Эквалайзер', width: 320, height: 160, ready: true },
-  plumbob: { id: 'plumbob', title: 'Пламбоб', width: 220, height: 260, ready: false }
+  plumbob: { id: 'plumbob', title: 'Пламбоб', width: 220, height: 260, ready: true }
 }
 
 export const WIDGET_IDS = Object.keys(WIDGETS) as WidgetId[]

@@ -28,7 +28,7 @@ export class AppTray {
 
   private menu(): Menu {
     const items = readyWidgetIds()
-      .filter(id => id !== 'weather' && id !== 'equalizer')
+      .filter(id => id !== 'weather' && id !== 'equalizer' && id !== 'plumbob')
       .map(id => ({
         label: WIDGETS[id].title,
         type: 'checkbox' as const,
@@ -64,10 +64,26 @@ export class AppTray {
       { label: 'Настройки эквалайзера…', click: () => openSettingsWindow('equalizer') }
     ]
 
+    const simsItems = this.store.state.sims.instances.map((instance, index) => ({
+      label: instance.mode === 'needs' ? `Потребности ${index + 1}` : `Пламбоб ${index + 1}`,
+      type: 'checkbox' as const,
+      checked: this.manager.isSimsOpen(instance.id),
+      click: () => this.manager.toggleSims(instance.id)
+    }))
+
+    const simsMenu = [
+      ...simsItems,
+      ...(simsItems.length > 0 ? [{ type: 'separator' as const }] : []),
+      { label: 'Добавить пламбоб…', click: () => openSettingsWindow('plumbob') },
+      { label: 'Добавить потребности…', click: () => openSettingsWindow('plumbob') },
+      { label: 'Настройки пламбоба…', click: () => openSettingsWindow('plumbob') }
+    ]
+
     return Menu.buildFromTemplate([
       ...items,
       { label: 'Погода', submenu: weatherMenu },
       { label: 'Эквалайзер', submenu: equalizerMenu },
+      { label: 'Пламбоб', submenu: simsMenu },
       { type: 'separator' },
       { label: 'Открыть все', click: () => this.manager.restore() },
       { label: 'Закрыть все', click: () => this.manager.closeAll() },

@@ -9,6 +9,8 @@ import type {
 import { WIDGETS, readyWidgetIds } from './widgets'
 import { DEFAULT_VISUALIZER } from './visualizer'
 import { defaultWindowStyle } from './windowStyle'
+import { createSimsState } from './sims'
+import type { SimsMode, SimsSettings } from './types'
 
 export const CITY_PRESETS: City[] = [
   {
@@ -102,6 +104,26 @@ export const MAX_WEATHER_CITIES = 5
 export const MAX_EQUALIZER_COPIES = 5
 export const DEFAULT_EQUALIZER_WIDTH = 360
 export const DEFAULT_EQUALIZER_HEIGHT = 200
+export const MAX_SIMS_INSTANCES = 4
+
+export function simsSize(mode: SimsMode): { width: number; height: number } {
+  return mode === 'needs' ? { width: 320, height: 420 } : { width: 220, height: 260 }
+}
+
+export function defaultSimsSettings(): SimsSettings {
+  return {
+    difficulty: 'light',
+    label: 'Пламбоб',
+    showLabel: true,
+    showPoints: true,
+    showDifficulty: true,
+    showMoodValue: true,
+    showNeeds: { hunger: true, social: true, hygiene: true, energy: true, fun: true },
+    animation: 'float',
+    bling: false,
+    blingIntensity: 0.7
+  }
+}
 
 export function defaultEqualizerSettings(): EqualizerSettings {
   return {
@@ -174,6 +196,25 @@ export const DEFAULT_SETTINGS: AppSettings = {
         layer: 1,
         style: defaultWindowStyle(false),
         settings: defaultEqualizerSettings()
+      }
+    ]
+  },
+  sims: {
+    groups: { default: createSimsState('default') },
+    instances: [
+      {
+        id: 'sims-1',
+        mode: 'plumbob',
+        groupId: 'default',
+        x: null,
+        y: null,
+        width: simsSize('plumbob').width,
+        height: simsSize('plumbob').height,
+        enabled: false,
+        locked: false,
+        layer: 1,
+        style: defaultWindowStyle(),
+        settings: defaultSimsSettings()
       }
     ]
   },

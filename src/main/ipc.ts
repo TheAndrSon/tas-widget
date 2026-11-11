@@ -5,6 +5,11 @@ import type {
   MusicAction,
   SettingsPatch,
   WeatherInstancePatch,
+  SimsAction,
+  SimsDifficulty,
+  SimsMode,
+  SimsNeed,
+  SimsSettings,
   WeatherProvider,
   WeatherUnits,
   WidgetId,
@@ -15,6 +20,7 @@ import type {
 import { WIDGET_IDS } from '../shared/widgets'
 import type { AssetStore } from './assets'
 import type { MusicService } from './music'
+import type { SimsService } from './sims'
 import { openSettingsWindow } from './settings-window'
 import type { Store } from './store'
 import type { SystemMonitor } from './system-monitor'
@@ -28,9 +34,10 @@ interface Deps {
   music: MusicService
   weather: WeatherService
   assets: AssetStore
+  sims: SimsService
 }
 
-export function registerIpc({ store, manager, monitor, music, weather, assets }: Deps): void {
+export function registerIpc({ store, manager, monitor, music, weather, assets, sims }: Deps): void {
   ipcMain.handle('settings:get', () => store.state)
 
   ipcMain.handle('settings:patch', (_event, patch: SettingsPatch) => {
@@ -223,6 +230,72 @@ export function registerIpc({ store, manager, monitor, music, weather, assets }:
     return true
   })
 
+  ipcMain.handle('sims:get', () => store.state.sims.groups)
+
+  ipcMain.handle('sims:reset', (_event, groupId: unknown) => {
+    if (typeof groupId !== 'string') return null
+    const state = store.resetSims(groupId)
+    manager.broadcast('sims:changed', store.state.sims.groups)
+    return state
+  })
+
+  ipcMain.handle('sims:add', (_event, mode: unknown) => {
+    const instance = store.addSims(mode === 'needs' ? 'needs' : 'plumbob')
+    if (!instance) return null
+    manager.openSims(instance)
+    manager.broadcast('settings:changed', store.state)
+    return instance
+  })
+
+  ipcMain.handle('sims:remove', (_event, id: unknown) => {
+    if (typeof id !== 'string') return false
+    manager.closeSims(id)
+    const removed = store.removeSims(id)
+    if (removed) manager.broadcast('settings:changed', store.state)
+    return removed
+  })
+
+  ipcMain.handle('sims:open', (_event, id: unknown) => {
+    if (typeof id !== 'string') return false
+    const instance = store.simsById(id)
+    if (!instance) return false
+    manager.openSims(instance)
+    return true
+  })
+
+  ipcMain.handle('sims:close', (_event, id: unknown) => {
+    if (typeof id !== 'string') return false
+    manager.closeSims(id)
+    return true
+  })
+
+  ipcMain.handle('sims:patch', (_event, id: unknown, patch: unknown) => {
+    if (typeof id !== 'string' || !patch || typeof patch !== 'object') return null
+    const instance = store.updateSims(
+      id,
+      patch as { settings?: Partial<SimsSettings>; groupId?: string }
+    )
+    if (instance) manager.broadcast('settings:changed', store.state)
+    return instance
+  })
+
+  ipcMain.handle(
+    'sims:action',
+    (_event, groupId: unknown, action: unknown, need: unknown, difficulty: unknown) => {
+      if (typeof groupId !== 'string' || typeof need !== 'string' || typeof action !== 'string') {
+        return null
+      }
+      const state = store.simsDo(
+        groupId,
+        action as SimsAction,
+        need as SimsNeed,
+        difficulty === 'hard' ? 'hard' : 'light'
+      )
+      manager.broadcast('sims:changed', store.state.sims.groups)
+      return state
+    }
+  )
+
   ipcMain.handle('weather:add', (_event, city: unknown) => {
     if (!city || typeof city !== 'object') return null
     const instance = store.addWeather(city as City)
@@ -290,11 +363,14 @@ export function registerIpc({ store, manager, monitor, music, weather, assets }:
               label: info.instanceId
                 ? info.type === 'equalizer'
                   ? 'Скрыть эквалайзер'
-                  : 'Скрыть город'
+                  : info.type === 'plumbob'
+                    ? 'Скрыть пламбоб'
+                    : 'Скрыть город'
                 : 'Скрыть виджет',
               click: () => {
                 if (info.instanceId) {
                   if (info.type === 'equalizer') manager.closeEqualizer(info.instanceId)
+                  else if (info.type === 'plumbob') manager.closeSims(info.instanceId)
                   else manager.closeWeather(info.instanceId)
                 } else {
                   manager.close(info.type)

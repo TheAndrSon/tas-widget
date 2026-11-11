@@ -6,10 +6,14 @@ import {
   DEFAULT_EQUALIZER_WIDTH,
   DEFAULT_SETTINGS,
   MAX_EQUALIZER_COPIES,
+  MAX_SIMS_INSTANCES,
   MAX_WEATHER_CITIES,
   defaultEqualizerSettings,
-  defaultWeatherSettings
+  defaultSimsSettings,
+  defaultWeatherSettings,
+  simsSize
 } from '../shared/defaults'
+import { createSimsState, simsAction, simsDecay } from '../shared/sims'
 import type {
   AppSettings,
   City,
@@ -17,6 +21,13 @@ import type {
   EqualizerInstancePatch,
   EqualizerSettings,
   SettingsPatch,
+  SimsAction,
+  SimsDifficulty,
+  SimsInstance,
+  SimsMode,
+  SimsNeed,
+  SimsSettings,
+  SimsState,
   WeatherInstance,
   WeatherInstancePatch,
   WeatherSettings,
@@ -235,6 +246,83 @@ function normalizeCustomStyles(raw: unknown): WindowStylePreset[] {
   })
 }
 
+const SIMS_KEYS: SimsNeed[] = ['hunger', 'social', 'hygiene', 'energy', 'fun']
+
+function normalizeSimsGroup(raw: unknown, groupId: string): SimsState {
+  const base = createSimsState(groupId)
+  if (!raw || typeof raw !== 'object') return base
+  const source = raw as Partial<SimsState>
+  const state: SimsState = {
+    ...base,
+    groupId,
+    points: Math.max(0, Math.round(Number(source.points ?? 0))),
+    updatedAt: Number(source.updatedAt ?? Date.now()),
+    stats: { ...base.stats, ...source.stats },
+    unlocked: Array.isArray(source.unlocked)
+      ? source.unlocked.filter((id): id is string => typeof id === 'string')
+      : []
+  }
+  for (const key of SIMS_KEYS) {
+    state[key] = Math.min(100, Math.max(0, Math.round(Number(source[key] ?? base[key]))))
+  }
+  state.mood = Math.min(100, Math.max(0, Math.round(Number(source.mood ?? state.mood))))
+  return state
+}
+
+function normalizeSimsSettings(raw: unknown): SimsSettings {
+  const base = defaultSimsSettings()
+  if (!raw || typeof raw !== 'object') return base
+  const source = raw as Partial<SimsSettings>
+  return {
+    ...base,
+    ...source,
+    difficulty: source.difficulty === 'hard' ? 'hard' : 'light',
+    showNeeds: { ...base.showNeeds, ...source.showNeeds },
+    animation:
+      source.animation === 'spin' || source.animation === 'pulse' || source.animation === 'none'
+        ? source.animation
+        : 'float',
+    label: typeof source.label === 'string' ? source.label : base.label
+  }
+}
+
+function normalizeSims(raw: unknown): AppSettings['sims'] {
+  if (!raw || typeof raw !== 'object') return structuredClone(DEFAULT_SETTINGS.sims)
+  const source = raw as Partial<AppSettings['sims']>
+  const groups: Record<string, SimsState> = {}
+  const rawGroups = source.groups ?? {}
+  for (const [groupId, state] of Object.entries(rawGroups)) {
+    groups[groupId] = normalizeSimsGroup(state, groupId)
+  }
+  if (Object.keys(groups).length === 0) groups.default = createSimsState('default')
+
+  const instances = Array.isArray(source.instances)
+    ? source.instances.slice(0, MAX_SIMS_INSTANCES).flatMap((item, index) => {
+        if (!item || typeof item !== 'object') return []
+        const mode: SimsMode = item.mode === 'needs' ? 'needs' : 'plumbob'
+        const size = simsSize(mode)
+        return [
+          {
+            id: typeof item.id === 'string' && item.id ? item.id : `sims-${index + 1}`,
+            mode,
+            groupId: typeof item.groupId === 'string' ? item.groupId : 'default',
+            x: typeof item.x === 'number' ? item.x : null,
+            y: typeof item.y === 'number' ? item.y : null,
+            width: Math.min(1600, Math.max(120, Number(item.width ?? size.width))),
+            height: Math.min(1200, Math.max(90, Number(item.height ?? size.height))),
+            enabled: Boolean(item.enabled),
+            locked: Boolean(item.locked),
+            layer: (item.layer === 0 || item.layer === 2 || item.layer === 3 ? item.layer : 1) as
+              0 | 1 | 2 | 3,
+            style: normalizeWindowStyle(item.style),
+            settings: normalizeSimsSettings(item.settings)
+          }
+        ]
+      })
+    : structuredClone(DEFAULT_SETTINGS.sims.instances)
+  return { groups, instances }
+}
+
 function normalize(raw: unknown): AppSettings {
   const source = (raw ?? {}) as Partial<AppSettings>
   const state: AppSettings = structuredClone(DEFAULT_SETTINGS)
@@ -267,6 +355,7 @@ function normalize(raw: unknown): AppSettings {
 
   state.weather.instances = normalizeWeather(source.weather, source.widgets?.weather)
   state.equalizer.instances = normalizeEqualizer(source.equalizer, source.widgets?.equalizer)
+  state.sims = normalizeSims(source.sims)
   state.customStyles = normalizeCustomStyles(source.customStyles)
 
   return state
@@ -566,6 +655,104 @@ export class Store {
     }
     this.scheduleSave()
     return instance
+  }
+
+  simsById(id: string): SimsInstance | undefined {
+    return this.state.sims.instances.find(instance => instance.id === id)
+  }
+
+  addSims(mode: SimsMode): SimsInstance | null {
+    const instances = this.state.sims.instances
+    if (instances.length >= MAX_SIMS_INSTANCES) return null
+    let index = 1
+    while (instances.some(instance => instance.id === `sims-${index}`)) index += 1
+    const size = simsSize(mode)
+    const instance: SimsInstance = {
+      id: `sims-${index}`,
+      mode,
+      groupId: 'default',
+      x: null,
+      y: null,
+      width: size.width,
+      height: size.height,
+      enabled: true,
+      locked: false,
+      layer: 1,
+      style: instances[0]?.style ? structuredClone(instances[0].style) : normalizeWindowStyle(null),
+      settings: defaultSimsSettings()
+    }
+    instances.push(instance)
+    this.scheduleSave()
+    return instance
+  }
+
+  removeSims(id: string): boolean {
+    const before = this.state.sims.instances.length
+    this.state.sims.instances = this.state.sims.instances.filter(instance => instance.id !== id)
+    if (this.state.sims.instances.length === before) return false
+    this.scheduleSave()
+    return true
+  }
+
+  setSimsEnabled(id: string, enabled: boolean): void {
+    const instance = this.simsById(id)
+    if (!instance) return
+    instance.enabled = enabled
+    this.scheduleSave()
+  }
+
+  setSimsPlacement(id: string, x: number, y: number): void {
+    const instance = this.simsById(id)
+    if (!instance) return
+    instance.x = x
+    instance.y = y
+    this.scheduleSave()
+  }
+
+  updateSims(
+    id: string,
+    patch: { settings?: Partial<SimsSettings>; groupId?: string }
+  ): SimsInstance | null {
+    const instance = this.simsById(id)
+    if (!instance) return null
+    if (patch.settings) instance.settings = { ...instance.settings, ...patch.settings }
+    if (typeof patch.groupId === 'string' && patch.groupId.trim()) {
+      instance.groupId = patch.groupId.trim()
+    }
+    this.scheduleSave()
+    return instance
+  }
+
+  simsDo(
+    groupId: string,
+    action: SimsAction,
+    need: SimsNeed,
+    difficulty: SimsDifficulty
+  ): SimsState {
+    const current = this.state.sims.groups[groupId] ?? createSimsState(groupId)
+    const next = simsAction(current, action, need, difficulty)
+    this.state.sims.groups[groupId] = next
+    this.scheduleSave()
+    return next
+  }
+
+  resetSims(groupId: string): SimsState {
+    const state = createSimsState(groupId)
+    this.state.sims.groups[groupId] = state
+    this.scheduleSave()
+    return state
+  }
+
+  tickSims(): Record<string, SimsState> {
+    for (const [groupId, state] of Object.entries(this.state.sims.groups)) {
+      const hard = this.state.sims.instances.some(
+        instance => instance.groupId === groupId && instance.settings.difficulty === 'hard'
+      )
+      const next = simsDecay(state, hard ? 'hard' : 'light')
+      if (next !== state) this.state.sims.groups[groupId] = next
+    }
+    this.scheduleSave()
+    return this.state.sims.groups
   }
 
   private scheduleSave(): void {

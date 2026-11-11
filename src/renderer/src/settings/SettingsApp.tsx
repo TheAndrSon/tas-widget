@@ -6,6 +6,8 @@ import type {
   EqualizerSettings,
   ImageAsset,
   SettingsPatch,
+  SimsNeed,
+  SimsSettings,
   VisualizerSettings,
   WeatherInstancePatch,
   WeatherProvider,
@@ -16,7 +18,8 @@ import type {
   WindowStylePreset,
   WindowTarget
 } from '@shared/types'
-import { MAX_EQUALIZER_COPIES, MAX_WEATHER_CITIES } from '@shared/defaults'
+import { MAX_EQUALIZER_COPIES, MAX_SIMS_INSTANCES, MAX_WEATHER_CITIES } from '@shared/defaults'
+import { SIMS_NEEDS } from '@shared/sims'
 import { WINDOW_PRESETS } from '@shared/windowStyle'
 import { VISUALIZER_MODES, VISUALIZER_PALETTES } from '@shared/visualizer'
 import { WIDGETS } from '@shared/widgets'
@@ -2140,6 +2143,260 @@ function EqualizerPanel({ settings, refresh }: PanelProps): ReactElement {
   )
 }
 
+function SimsPanel({ settings, refresh }: PanelProps): ReactElement {
+  const instances = settings.sims.instances
+  const [activeId, setActiveId] = useState<string | null>(instances[0]?.id ?? null)
+  const active = instances.find(instance => instance.id === activeId) ?? instances[0] ?? null
+
+  const update = async (patch: { settings?: Partial<SimsSettings>; groupId?: string }) => {
+    if (!active) return
+    await window.api.patchSims(active.id, patch)
+    await refresh()
+  }
+
+  const add = async (mode: 'plumbob' | 'needs'): Promise<void> => {
+    const instance = await window.api.addSims(mode)
+    await refresh()
+    if (instance) setActiveId(instance.id)
+  }
+
+  const toggle = async (): Promise<void> => {
+    if (!active) return
+    if (active.enabled) await window.api.closeSims(active.id)
+    else await window.api.openSims(active.id)
+    await refresh()
+  }
+
+  return (
+    <section className="panel">
+      <div className="row row--stacked">
+        <div className="row__text">
+          <span className="row__label">Пламбоб и потребности</span>
+          <span className="row__hint">До 4 окон, общая группа синхронизирует состояние</span>
+        </div>
+        <div className="city-list">
+          {instances.map((instance, index) => (
+            <div
+              className={`city-chip ${active?.id === instance.id ? 'is-active' : ''}`}
+              key={instance.id}
+            >
+              <button
+                type="button"
+                className="city-chip__name"
+                onClick={() => setActiveId(instance.id)}
+              >
+                {instance.mode === 'needs' ? 'Потребности' : 'Пламбоб'} {index + 1}
+              </button>
+              <button
+                type="button"
+                className="city-chip__remove"
+                onClick={() => void window.api.removeSims(instance.id).then(refresh)}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {instances.length < MAX_SIMS_INSTANCES && (
+            <>
+              <button type="button" className="city-add" onClick={() => void add('plumbob')}>
+                + Пламбоб
+              </button>
+              <button type="button" className="city-add" onClick={() => void add('needs')}>
+                + Потребности
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {active && (
+        <>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Показывать это окно</span>
+              <span className="row__hint">
+                {active.mode === 'needs' ? 'Блок потребностей' : 'Кристалл с подписью'}
+              </span>
+            </div>
+            <Switch checked={active.enabled} onChange={() => void toggle()} />
+          </div>
+
+          <WindowControls
+            locked={active.locked}
+            layer={active.layer}
+            onLocked={locked =>
+              void window.api
+                .setWindowLock({ type: 'plumbob', instanceId: active.id }, locked)
+                .then(refresh)
+            }
+            onLayer={layer =>
+              void window.api
+                .setWindowLayer({ type: 'plumbob', instanceId: active.id }, layer)
+                .then(refresh)
+            }
+            onReset={() =>
+              void window.api
+                .resetWindowPosition({ type: 'plumbob', instanceId: active.id })
+                .then(refresh)
+            }
+          />
+
+          <WindowStyleControls
+            target={{ type: 'plumbob', instanceId: active.id }}
+            style={active.style}
+            customStyles={settings.customStyles}
+            accent
+            refresh={refresh}
+          />
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Группа</span>
+              <span className="row__hint">Одинаковая группа — общие потребности и баллы</span>
+            </div>
+            <input
+              className="text-input"
+              value={active.groupId}
+              onChange={event => void update({ groupId: event.target.value })}
+            />
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Состояние группы</span>
+              <span className="row__hint">Сбросить потребности, баллы и награды</span>
+            </div>
+            <div className="align-buttons">
+              <button type="button" onClick={() => void window.api.resetSims(active.groupId)}>
+                Сбросить
+              </button>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Режим сложности</span>
+              <span className="row__hint">
+                Лайт: +24 к потребности и +2★, хард: +16 и +1★, но быстрее просадка
+              </span>
+            </div>
+            <Segmented
+              value={active.settings.difficulty}
+              options={[
+                { value: 'light', label: 'Лайт' },
+                { value: 'hard', label: 'Хард' }
+              ]}
+              onChange={difficulty => void update({ settings: { difficulty } })}
+            />
+          </div>
+
+          {active.mode === 'plumbob' && (
+            <>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Подпись</span>
+                </div>
+                <input
+                  className="text-input"
+                  value={active.settings.label}
+                  onChange={event => void update({ settings: { label: event.target.value } })}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Анимация</span>
+                </div>
+                <select
+                  className="select"
+                  value={active.settings.animation}
+                  onChange={event =>
+                    void update({
+                      settings: { animation: event.target.value as SimsSettings['animation'] }
+                    })
+                  }
+                >
+                  <option value="float">Парение</option>
+                  <option value="spin">Вращение</option>
+                  <option value="pulse">Пульсация</option>
+                  <option value="none">Без анимации</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Подпись состояния</span>
+            </div>
+            <Switch
+              checked={active.settings.showLabel}
+              onChange={showLabel => void update({ settings: { showLabel } })}
+            />
+          </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Баллы</span>
+            </div>
+            <Switch
+              checked={active.settings.showPoints}
+              onChange={showPoints => void update({ settings: { showPoints } })}
+            />
+          </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Режим сложности на виджете</span>
+            </div>
+            <Switch
+              checked={active.settings.showDifficulty}
+              onChange={showDifficulty => void update({ settings: { showDifficulty } })}
+            />
+          </div>
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Число настроения</span>
+            </div>
+            <Switch
+              checked={active.settings.showMoodValue}
+              onChange={showMoodValue => void update({ settings: { showMoodValue } })}
+            />
+          </div>
+
+          {active.mode === 'needs' && (
+            <div className="row row--stacked">
+              <div className="row__text">
+                <span className="row__label">Показывать потребности</span>
+              </div>
+              {SIMS_NEEDS.map(need => (
+                <div className="row" key={need.key}>
+                  <div className="row__text">
+                    <span className="row__label">{need.label}</span>
+                  </div>
+                  <Switch
+                    checked={active.settings.showNeeds[need.key as SimsNeed]}
+                    onChange={value =>
+                      void update({
+                        settings: {
+                          showNeeds: { ...active.settings.showNeeds, [need.key]: value }
+                        }
+                      })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="note">
+            Просадка: ночью 20:00–10:00 по 1 баллу в час, днём по 6. Каждые 3 часа при потребности
+            ≤15 списываются звёзды, каждые 6 часов при настроении 80+ начисляются. Награды
+            открываются автоматически и видны по кнопке 🏆 в блоке потребностей.
+          </p>
+        </>
+      )}
+    </section>
+  )
+}
+
 function PlannedPanel({ id }: { id: WidgetId }): ReactElement {
   return (
     <section className="panel panel--empty">
@@ -2303,11 +2560,21 @@ export function SettingsApp(): ReactElement {
           />
         )}
 
+        {settings && tab === 'plumbob' && (
+          <SimsPanel
+            settings={settings}
+            patch={patch}
+            toggleWidget={toggleWidget}
+            refresh={refresh}
+          />
+        )}
+
         {settings &&
           tab !== 'system' &&
           tab !== 'music' &&
           tab !== 'weather' &&
-          tab !== 'equalizer' && <PlannedPanel id={tab} />}
+          tab !== 'equalizer' &&
+          tab !== 'plumbob' && <PlannedPanel id={tab} />}
       </main>
     </div>
   )

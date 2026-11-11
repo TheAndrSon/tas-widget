@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { AssetStore } from './assets'
 import { registerIpc } from './ipc'
 import { MusicService } from './music'
+import { SimsService } from './sims'
 import { Store } from './store'
 import { SystemMonitor } from './system-monitor'
 import { AppTray } from './tray'
@@ -58,11 +59,13 @@ if (!app.requestSingleInstanceLock()) {
     const active = manager
     music.onUpdate(snapshot => active.broadcast('music:sample', snapshot))
     const monitor = new SystemMonitor(sample => active.broadcast('system:sample', sample))
+    const sims = new SimsService(store, groups => active.broadcast('sims:changed', groups))
 
-    registerIpc({ store, manager: active, monitor, music, weather, assets })
+    registerIpc({ store, manager: active, monitor, music, weather, assets, sims })
     new AppTray(active, store).create()
     active.restore()
     monitor.start(store.state.system.intervalMs)
+    sims.start()
 
     app.on('activate', () => active.restore())
   })

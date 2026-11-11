@@ -1,0 +1,318 @@
+.widget.sims {
+  position: relative;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.widget.sims.sims--needs {
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.sims__empty {
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.plumbob-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 116px;
+  height: 132px;
+  flex: none;
+}
+
+.plumbob-3d {
+  position: relative;
+  width: 90px;
+  height: 118px;
+  perspective: 620px;
+}
+
+.plumbob-3d__glow {
+  position: absolute;
+  inset: -14%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--sims-color) 46%, transparent),
+    transparent 68%
+  );
+  filter: blur(10px);
+  opacity: 0.85;
+  animation: plumbob-glow 3.2s ease-in-out infinite;
+}
+
+.plumbob-3d__gem {
+  position: absolute;
+  inset: 4px 7px 2px;
+  transform-style: preserve-3d;
+  animation: plumbob-float-3d 4.2s ease-in-out infinite;
+}
+
+.plumbob-3d.is-spinning .plumbob-3d__gem {
+  animation: plumbob-spin-3d 8s linear infinite;
+}
+
+.plumbob-3d__facet {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  background:
+    linear-gradient(105deg, rgba(255, 255, 255, 0.44), transparent 38%),
+    linear-gradient(285deg, rgba(0, 0, 0, 0.3), transparent 55%), var(--sims-color);
+  opacity: 0.62;
+}
+
+.plumbob-3d__facet:nth-child(2n) {
+  background:
+    linear-gradient(80deg, rgba(255, 255, 255, 0.16), transparent 45%),
+    linear-gradient(260deg, rgba(0, 0, 0, 0.4), transparent 58%), var(--sims-color);
+}
+
+.plumbob-3d__shine {
+  position: absolute;
+  left: 22%;
+  top: 12%;
+  width: 34%;
+  height: 44%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), transparent 70%);
+  filter: blur(1px);
+  transform: translateZ(14px);
+  pointer-events: none;
+}
+
+@keyframes plumbob-float-3d {
+  0%,
+  100% {
+    transform: translateY(0) rotateX(3deg) rotateZ(-2deg);
+  }
+  50% {
+    transform: translateY(-5px) rotateX(-3deg) rotateZ(2deg);
+  }
+}
+@keyframes plumbob-spin-3d {
+  from {
+    transform: rotateY(0deg) rotateX(4deg);
+  }
+  to {
+    transform: rotateY(360deg) rotateX(4deg);
+  }
+}
+@keyframes plumbob-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.sims-anim-pulse .plumbob-3d__gem {
+  animation: plumbob-pulse-3d 2.6s ease-in-out infinite;
+}
+@keyframes plumbob-pulse-3d {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.07);
+  }
+}
+
+.sims__label {
+  text-align: center;
+  margin-top: 2px;
+}
+.sims__label-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+.sims__caption {
+  display: block;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.sims__scoreline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 9.5px;
+}
+.sims__points {
+  color: var(--sims-color);
+  font-weight: 600;
+}
+.sims__difficulty {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+.sims__difficulty.is-hard {
+  color: #ff9f9f;
+  border-color: rgba(255, 120, 120, 0.35);
+}
+.sims__moodvalue {
+  color: var(--muted);
+}
+
+.sims__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sims__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.sims__headtext {
+  flex: 1;
+  min-width: 0;
+}
+.sims__title {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.sims__mood {
+  font-size: 12px;
+  color: var(--muted);
+}
+.sims__trophy {
+  padding: 4px 7px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.sims__needs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sims-need {
+  display: grid;
+  grid-template-columns: 58px 1fr 26px;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+}
+.sims-need__label {
+  color: var(--muted);
+}
+.sims-need__track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.sims-need__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.4s ease;
+}
+.sims-need__value {
+  text-align: right;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.sims__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+.sims__actions button {
+  padding: 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+  font-family: inherit;
+  font-size: 9.5px;
+  cursor: pointer;
+}
+.sims__actions button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.sims__actions button.is-worsen {
+  border-color: rgba(255, 120, 120, 0.35);
+  color: #ff9f9f;
+}
+.sims__worsen.is-active {
+  background: rgba(120, 20, 24, 0.35);
+  border-color: rgba(255, 120, 120, 0.55);
+  color: #ffb3b3;
+}
+.sims__meta {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 9.5px;
+}
+
+.sims-rewards {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background: rgba(8, 11, 17, 0.97);
+  border-radius: inherit;
+}
+.sims-rewards__head {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  font-size: 12px;
+}
+.sims-rewards__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+.sims-reward {
+  display: flex;
+  gap: 7px;
+  padding: 6px 7px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  opacity: 0.5;
+  font-size: 9.5px;
+}
+.sims-reward.is-done {
+  opacity: 1;
+  border-color: rgba(126, 242, 155, 0.3);
+  background: rgba(126, 242, 155, 0.06);
+}
+.sims-reward div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sims-reward small {
+  color: var(--muted);
+}

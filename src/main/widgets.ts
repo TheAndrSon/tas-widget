@@ -3,6 +3,7 @@ import type { Display, Rectangle, WebContents } from 'electron'
 import { join } from 'node:path'
 import type {
   EqualizerInstance,
+  SimsInstance,
   WeatherInstance,
   WidgetId,
   WindowLayer,
@@ -43,6 +44,7 @@ export class WidgetManager {
   private wins = new Map<WidgetId, BrowserWindow>()
   private weatherWins = new Map<string, BrowserWindow>()
   private equalizerWins = new Map<string, BrowserWindow>()
+  private simsWins = new Map<string, BrowserWindow>()
   private timers = new Map<string, NodeJS.Timeout>()
   private applyingBounds = new Set<string>()
   private quitting = false
@@ -67,11 +69,15 @@ export class WidgetManager {
     for (const instance of this.store.state.equalizer.instances) {
       if (instance.enabled) this.openEqualizer(instance)
     }
+    for (const instance of this.store.state.sims.instances) {
+      if (instance.enabled) this.openSims(instance)
+    }
   }
 
   isOpen(id: WidgetId): boolean {
     if (id === 'weather') return this.weatherWins.size > 0
     if (id === 'equalizer') return this.equalizerWins.size > 0
+    if (id === 'plumbob') return this.simsWins.size > 0
     const win = this.wins.get(id)
     return Boolean(win && !win.isDestroyed())
   }
@@ -83,6 +89,11 @@ export class WidgetManager {
 
   isEqualizerOpen(id: string): boolean {
     const win = this.equalizerWins.get(id)
+    return Boolean(win && !win.isDestroyed())
+  }
+
+  isSimsOpen(id: string): boolean {
+    const win = this.simsWins.get(id)
     return Boolean(win && !win.isDestroyed())
   }
 
@@ -100,11 +111,16 @@ export class WidgetManager {
         return { type: 'equalizer', instanceId }
       }
     }
+    for (const [instanceId, win] of this.simsWins) {
+      if (!win.isDestroyed() && win.webContents === contents) {
+        return { type: 'plumbob', instanceId }
+      }
+    }
     return null
   }
 
   open(id: WidgetId): BrowserWindow | null {
-    if (id === 'weather' || id === 'equalizer') return null
+    if (id === 'weather' || id === 'equalizer' || id === 'plumbob') return null
     const meta = WIDGETS[id]
     if (!meta.ready) return null
 
@@ -424,6 +440,20 @@ export class WidgetManager {
     if (win && !win.isDestroyed()) win.close()
   }
 
+  closeSims(id: string): void {
+    this.store.setSimsEnabled(id, false)
+    const win = this.simsWins.get(id)
+    if (win && !win.isDestroyed()) win.close()
+  }
+
+  toggleSims(id: string): void {
+    if (this.isSimsOpen(id)) this.closeSims(id)
+    else {
+      const instance = this.store.simsById(id)
+      if (instance) this.openSims(instance)
+    }
+  }
+
   toggle(id: WidgetId): void {
     if (this.isOpen(id)) this.close(id)
     else this.open(id)
@@ -443,6 +473,53 @@ export class WidgetManager {
       const instance = this.store.equalizerById(id)
       if (instance) this.openEqualizer(instance)
     }
+  }
+
+  openSims(instance: SimsInstance): BrowserWindow | null {
+    const existing = this.simsWins.get(instance.id)
+    if (existing && !existing.isDestroyed()) {
+      existing.showInactive()
+      return existing
+    }
+    const fallback = this.defaultSimsPosition(instance.width, instance.height)
+    const win = this.createWindow(
+      { width: instance.width, height: instance.height },
+      instance.x ?? fallback.x,
+      instance.y ?? fallback.y
+    )
+    const key = `sims:${instance.id}`
+
+    const devUrl = process.env['ELECTRON_RENDERER_URL']
+    if (devUrl) {
+      void win.loadURL(`${devUrl}?widget=plumbob&instance=${encodeURIComponent(instance.id)}`)
+    } else {
+      void win.loadFile(join(__dirname, '../renderer/index.html'), {
+        query: { widget: 'plumbob', instance: instance.id }
+      })
+    }
+
+    win.on('moved', () => {
+      const [x, y] = win.getPosition()
+      const timer = this.timers.get(key)
+      if (timer) clearTimeout(timer)
+      this.timers.set(
+        key,
+        setTimeout(() => this.store.setSimsPlacement(instance.id, x, y), 300)
+      )
+    })
+
+    win.on('closed', () => {
+      this.simsWins.delete(instance.id)
+      const timer = this.timers.get(key)
+      if (timer) clearTimeout(timer)
+      this.timers.delete(key)
+      if (!this.quitting) this.store.setSimsEnabled(instance.id, false)
+    })
+
+    this.simsWins.set(instance.id, win)
+    this.store.setSimsEnabled(instance.id, true)
+    this.applyLayer({ type: 'plumbob', instanceId: instance.id })
+    return win
   }
 
   applyEqualizerLayout(id: string): void {
@@ -483,6 +560,7 @@ export class WidgetManager {
     for (const id of [...this.wins.keys()]) this.close(id)
     for (const id of [...this.weatherWins.keys()]) this.closeWeather(id)
     for (const id of [...this.equalizerWins.keys()]) this.closeEqualizer(id)
+    for (const id of [...this.simsWins.keys()]) this.closeSims(id)
   }
 
   broadcast(channel: string, payload: unknown): void {
@@ -493,6 +571,9 @@ export class WidgetManager {
       if (!win.isDestroyed()) win.webContents.send(channel, payload)
     }
     for (const win of this.equalizerWins.values()) {
+      if (!win.isDestroyed()) win.webContents.send(channel, payload)
+    }
+    for (const win of this.simsWins.values()) {
       if (!win.isDestroyed()) win.webContents.send(channel, payload)
     }
   }
@@ -558,6 +639,20 @@ export class WidgetManager {
     const count = [...this.equalizerWins.entries()].filter(
       ([id, win]) => id !== excludeId && !win.isDestroyed()
     ).length
+    const column = Math.floor(count / rows)
+    const row = count % rows
+    return {
+      x: area.x + MARGIN + column * (w + GAP),
+      y: area.y + area.height - h - MARGIN - row * (h + GAP)
+    }
+  }
+
+  private defaultSimsPosition(width: number, height: number): { x: number; y: number } {
+    const area = screen.getPrimaryDisplay().workArea
+    const w = windowWidth(width)
+    const h = windowHeight(height)
+    const rows = Math.max(1, Math.floor((area.height - 2 * MARGIN + GAP) / (h + GAP)))
+    const count = [...this.simsWins.values()].filter(win => !win.isDestroyed()).length
     const column = Math.floor(count / rows)
     const row = count % rows
     return {
