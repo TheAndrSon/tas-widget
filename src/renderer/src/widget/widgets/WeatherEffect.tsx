@@ -2,15 +2,14 @@ import { useEffect, useRef, type JSX } from 'react'
 import { useWeather } from '../../hooks'
 import type { WeatherSettings } from '@shared/types'
 
-type WeatherFx = 'rain' | 'snow' | 'fog' | 'clear' | 'cloud' | 'storm'
+type WeatherFx = 'rain' | 'snow' | 'fog' | 'storm'
 
-function effectFor(code: number): WeatherFx {
+function effectFor(code: number): WeatherFx | null {
   if ([95, 96, 99].includes(code)) return 'storm'
   if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rain'
   if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow'
   if (code === 45 || code === 48) return 'fog'
-  if (code === 0 || code === 1) return 'clear'
-  return 'cloud'
+  return null
 }
 
 interface Drop {
@@ -25,12 +24,9 @@ interface Drop {
 export function WeatherEffect({ settings }: { settings: WeatherSettings }): JSX.Element | null {
   const { data } = useWeather(settings.city, settings.units, settings.provider)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const effectRef = useRef<WeatherFx>('cloud')
-  const dayRef = useRef(true)
-  const code = data?.current.code ?? 2
-  const isDay = data?.current.isDay ?? true
+  const effectRef = useRef<WeatherFx | null>(null)
+  const code = data?.current.code ?? 0
   effectRef.current = effectFor(code)
-  dayRef.current = isDay
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -71,18 +67,31 @@ export function WeatherEffect({ settings }: { settings: WeatherSettings }): JSX.
       const effect = effectRef.current
       context.clearRect(0, 0, width, height)
 
+      if (!effect) {
+        frame = requestAnimationFrame(draw)
+        return
+      }
+
       if (effect === 'fog') {
         const t = now / 1000
         for (let index = 0; index < 4; index += 1) {
           const x = ((t * (6 + index * 3) + index * width * 0.27) % (width * 1.4)) - width * 0.2
-          const gradient = context.createRadialGradient(x, height * 0.6, 0, x, height * 0.6, width * 0.55)
+          const gradient = context.createRadialGradient(
+            x,
+            height * 0.6,
+            0,
+            x,
+            height * 0.6,
+            width * 0.55
+          )
           gradient.addColorStop(0, 'rgba(255,255,255,0.11)')
           gradient.addColorStop(1, 'rgba(255,255,255,0)')
           context.fillStyle = gradient
           context.fillRect(0, 0, width, height)
         }
       } else if (effect === 'rain' || effect === 'storm') {
-        context.strokeStyle = effect === 'storm' ? 'rgba(180,205,255,0.5)' : 'rgba(190,220,255,0.38)'
+        context.strokeStyle =
+          effect === 'storm' ? 'rgba(180,205,255,0.5)' : 'rgba(190,220,255,0.38)'
         context.lineWidth = 1.1
         for (const drop of drops) {
           drop.y += drop.speed * 7 * delta
@@ -114,22 +123,6 @@ export function WeatherEffect({ settings }: { settings: WeatherSettings }): JSX.
           context.globalAlpha = drop.alpha
           context.beginPath()
           context.arc(drop.x, drop.y, drop.size * 0.9, 0, Math.PI * 2)
-          context.fill()
-        }
-      } else if (effect === 'clear' && dayRef.current) {
-        const gradient = context.createRadialGradient(width * 0.82, -height * 0.15, 0, width * 0.82, -height * 0.15, width * 0.9)
-        gradient.addColorStop(0, 'rgba(255,230,160,0.22)')
-        gradient.addColorStop(0.45, 'rgba(255,220,150,0.08)')
-        gradient.addColorStop(1, 'rgba(255,220,150,0)')
-        context.fillStyle = gradient
-        context.fillRect(0, 0, width, height)
-      } else {
-        const t = now / 1000
-        context.fillStyle = 'rgba(255,255,255,0.045)'
-        for (let index = 0; index < 3; index += 1) {
-          const x = ((t * (4 + index * 2) + index * width * 0.4) % (width * 1.3)) - width * 0.15
-          context.beginPath()
-          context.ellipse(x, height * (0.25 + index * 0.16), width * 0.34, height * 0.1, 0, 0, Math.PI * 2)
           context.fill()
         }
       }
