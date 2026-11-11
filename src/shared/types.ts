@@ -86,7 +86,8 @@ export interface WeatherInstancePatch {
 }
 
 export type VisualizerMode = 'off' | 'bars' | 'radial' | 'line' | 'dots' | 'sparks' | 'waves'
-export type VisualizerPalette = 'neon' | 'sunset' | 'ice' | 'matrix' | 'candy' | 'custom'
+export type VisualizerPalette =
+  'neon' | 'sunset' | 'ice' | 'matrix' | 'candy' | 'aurora' | 'fire' | 'custom'
 
 export interface VisualizerSettings {
   mode: VisualizerMode

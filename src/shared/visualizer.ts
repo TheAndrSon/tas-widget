@@ -48,6 +48,8 @@ export const VISUALIZER_PALETTES: Array<{
   { value: 'ice', label: 'Лёд', color1: '#9fe8ff', color2: '#5f8bff' },
   { value: 'matrix', label: 'Матрица', color1: '#7dff9e', color2: '#0f8f43' },
   { value: 'candy', label: 'Карамель', color1: '#ffd166', color2: '#ff7ac6' },
+  { value: 'aurora', label: 'Аврора', color1: '#42ffd9', color2: '#2b6cff' },
+  { value: 'fire', label: 'Огонь', color1: '#ffb347', color2: '#ff3d3d' },
   { value: 'custom', label: 'Свои цвета', color1: '#62e6ff', color2: '#a56bff' }
 ]
 
