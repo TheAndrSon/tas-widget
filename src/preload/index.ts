@@ -1,10 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AppSettings,
+  City,
   MusicAction,
   MusicSnapshot,
   SettingsPatch,
   SystemSample,
+  WeatherProvider,
+  WeatherResult,
+  WeatherUnits,
   WidgetId
 } from '../shared/types'
 
@@ -32,7 +36,22 @@ const api = {
     subscribe('music:sample', listener),
   musicControl: (action: MusicAction, positionMs?: number): void => {
     ipcRenderer.send('music:control', action, positionMs)
-  }
+  },
+  searchCity: (query: string): Promise<City[]> =>
+    ipcRenderer.invoke('weather:search', query) as Promise<City[]>,
+  getWeather: (
+    city: City,
+    units: WeatherUnits,
+    provider: WeatherProvider,
+    yandexKey = ''
+  ): Promise<WeatherResult> =>
+    ipcRenderer.invoke(
+      'weather:forecast',
+      city,
+      units,
+      provider,
+      yandexKey
+    ) as Promise<WeatherResult>
 }
 
 contextBridge.exposeInMainWorld('api', api)

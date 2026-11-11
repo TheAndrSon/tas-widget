@@ -29,6 +29,52 @@ function normalize(raw: unknown): AppSettings {
     if (typeof value === 'boolean') state.music[key] = value
   }
 
+  const weather = source.weather
+  if (weather) {
+    const city = weather.city
+    if (
+      city &&
+      typeof city.name === 'string' &&
+      Number.isFinite(city.lat) &&
+      Number.isFinite(city.lon)
+    ) {
+      state.weather.city = {
+        id: Number(city.id) || 0,
+        name: city.name,
+        country: typeof city.country === 'string' ? city.country : '',
+        admin1: typeof city.admin1 === 'string' ? city.admin1 : undefined,
+        lat: city.lat,
+        lon: city.lon,
+        timezone: typeof city.timezone === 'string' ? city.timezone : undefined
+      }
+    } else if (city === null) {
+      state.weather.city = null
+    }
+    if (weather.units === 'metric' || weather.units === 'imperial') {
+      state.weather.units = weather.units
+    }
+    if (
+      weather.provider === 'open-meteo' ||
+      weather.provider === 'metno' ||
+      weather.provider === 'wttr' ||
+      weather.provider === 'yandex'
+    ) {
+      state.weather.provider = weather.provider
+    }
+    if (typeof weather.yandexKey === 'string') state.weather.yandexKey = weather.yandexKey
+    if (typeof weather.atmosphere === 'boolean') state.weather.atmosphere = weather.atmosphere
+    if (weather.forecastDays === 0 || weather.forecastDays === 3 || weather.forecastDays === 5) {
+      state.weather.forecastDays = weather.forecastDays
+    }
+    for (const key of ['showCity', 'showFeelsLike', 'showWind', 'showHumidity'] as const) {
+      const value = weather[key]
+      if (typeof value === 'boolean') state.weather[key] = value
+    }
+    if (weather.sunMode === 'off' || weather.sunMode === 'compact' || weather.sunMode === 'arc') {
+      state.weather.sunMode = weather.sunMode
+    }
+  }
+
   return state
 }
 
@@ -54,6 +100,9 @@ export class Store {
     }
     if (patch.music) {
       this.state.music = { ...this.state.music, ...patch.music }
+    }
+    if (patch.weather) {
+      this.state.weather = { ...this.state.weather, ...patch.weather }
     }
     if (patch.widgets) {
       for (const id of WIDGET_IDS) {

@@ -4,7 +4,7 @@ import type { WidgetId, WidgetMeta } from './types'
 export const WIDGETS: Record<WidgetId, WidgetMeta> = {
   system: { id: 'system', title: 'Система', width: 280, height: 196, ready: true },
   music: { id: 'music', title: 'Музыка', width: 340, height: 150, ready: true },
-  weather: { id: 'weather', title: 'Погода', width: 300, height: 220, ready: false },
+  weather: { id: 'weather', title: 'Погода', width: 320, height: 300, ready: true },
   equalizer: { id: 'equalizer', title: 'Эквалайзер', width: 320, height: 160, ready: false },
   plumbob: { id: 'plumbob', title: 'Пламбоб', width: 220, height: 260, ready: false }
 }

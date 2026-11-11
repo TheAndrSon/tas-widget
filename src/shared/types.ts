@@ -28,16 +28,49 @@ export interface MusicSettings {
   showSource: boolean
 }
 
+export type WeatherUnits = 'metric' | 'imperial'
+export type WeatherProvider = 'open-meteo' | 'metno' | 'wttr' | 'yandex'
+export type SunMode = 'off' | 'compact' | 'arc'
+
+export interface City {
+  id: number
+  name: string
+  country: string
+  admin1?: string
+  lat: number
+  lon: number
+  /** IANA-зона города, если известна */
+  timezone?: string
+}
+
+export interface WeatherSettings {
+  city: City | null
+  units: WeatherUnits
+  provider: WeatherProvider
+  /** ключ Яндекс.Погоды, хранится локально */
+  yandexKey: string
+  /** отдельная атмосфера по времени суток */
+  atmosphere: boolean
+  forecastDays: 0 | 3 | 5
+  showCity: boolean
+  showFeelsLike: boolean
+  showWind: boolean
+  showHumidity: boolean
+  sunMode: SunMode
+}
+
 export interface AppSettings {
   widgets: Record<WidgetId, WidgetPlacement>
   system: SystemSettings
   music: MusicSettings
+  weather: WeatherSettings
 }
 
 export type SettingsPatch = {
   widgets?: Partial<Record<WidgetId, Partial<WidgetPlacement>>>
   system?: Partial<SystemSettings>
   music?: Partial<MusicSettings>
+  weather?: Partial<WeatherSettings>
 }
 
 export interface DiskSample {
@@ -76,3 +109,38 @@ export interface MusicSnapshot {
 }
 
 export type MusicAction = 'toggle' | 'next' | 'prev' | 'seek'
+
+export interface WeatherSun {
+  sunrise: string
+  sunset: string
+  moonrise?: string
+  moonset?: string
+  /** ISO 8601, локальное время города */
+  firstLight?: string
+  lastLight?: string
+}
+
+export interface WeatherSnapshot {
+  city: City
+  provider: 'open-meteo' | 'metno' | 'wttr' | 'yandex' | '7timer'
+  fetchedAt: number
+  timezone: string
+  utcOffsetSeconds: number
+  sun: WeatherSun | null
+  current: {
+    temp: number
+    feelsLike: number
+    code: number
+    isDay: boolean
+    wind: number
+    humidity: number
+  }
+  daily: Array<{
+    date: string
+    code: number
+    tMax: number
+    tMin: number
+  }>
+}
+
+export type WeatherResult = { ok: true; data: WeatherSnapshot } | { ok: false; error: string }

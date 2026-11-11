@@ -60,3 +60,48 @@ export function IconNote({ size = 16, className }: IconProps): ReactElement {
     </svg>
   )
 }
+
+export function IconThermometer({ size = 12, className }: IconProps): ReactElement {
+  return (
+    <svg {...svgProps(size, className)}>
+      <path d="M10 13.8V5.4a2 2 0 1 1 4 0v8.4a4 4 0 1 1-4 0Z" />
+      <path d="M12 10v6" />
+    </svg>
+  )
+}
+
+export function IconDroplet({ size = 12, className }: IconProps): ReactElement {
+  return (
+    <svg {...svgProps(size, className)}>
+      <path d="M12 3.8s5.4 5.3 5.4 9.1a5.4 5.4 0 1 1-10.8 0C6.6 9.1 12 3.8 12 3.8Z" />
+    </svg>
+  )
+}
+
+export function IconWind({ size = 12, className }: IconProps): ReactElement {
+  return (
+    <svg {...svgProps(size, className)}>
+      <path d="M3 8.5h9.5a2.7 2.7 0 1 0-2.7-2.7M3 12.5h13.5a2.7 2.7 0 1 1-2.7 2.7M3 16.5h6.5" />
+    </svg>
+  )
+}
+
+export function IconSunrise({ size = 14, className }: IconProps): ReactElement {
+  return (
+    <svg {...svgProps(size, className)}>
+      <circle cx="12" cy="14" r="3.4" />
+      <path d="M12 3.5v3M4.8 6.2l2 2M19.2 6.2l-2 2M2.5 18.5h19M5 22h14" />
+      <path d="M8.5 18.5a3.5 3.5 0 0 1 7 0" />
+    </svg>
+  )
+}
+
+export function IconSunset({ size = 14, className }: IconProps): ReactElement {
+  return (
+    <svg {...svgProps(size, className)}>
+      <circle cx="12" cy="14" r="3.4" />
+      <path d="M12 3.5v3M4.8 6.2l2 2M19.2 6.2l-2 2M2.5 18.5h19M5 22h14" />
+      <path d="M8.5 14a3.5 3.5 0 0 1 7 0" />
+    </svg>
+  )
+}

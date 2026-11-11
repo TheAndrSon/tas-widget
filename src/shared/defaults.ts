@@ -1,5 +1,77 @@
-import type { AppSettings, WidgetId, WidgetPlacement } from './types'
+import type { AppSettings, City, WidgetId, WidgetPlacement } from './types'
 import { WIDGETS, readyWidgetIds } from './widgets'
+
+export const CITY_PRESETS: City[] = [
+  {
+    id: 524901,
+    name: 'Москва',
+    country: 'Россия',
+    admin1: 'Москва',
+    lat: 55.7558,
+    lon: 37.6173,
+    timezone: 'Europe/Moscow'
+  },
+  {
+    id: 498817,
+    name: 'Санкт-Петербург',
+    country: 'Россия',
+    admin1: 'Санкт-Петербург',
+    lat: 59.9386,
+    lon: 30.3141,
+    timezone: 'Europe/Moscow'
+  },
+  {
+    id: 1496747,
+    name: 'Новосибирск',
+    country: 'Россия',
+    admin1: 'Новосибирская область',
+    lat: 55.0415,
+    lon: 82.9346,
+    timezone: 'Asia/Novosibirsk'
+  },
+  {
+    id: 511196,
+    name: 'Пермь',
+    country: 'Россия',
+    admin1: 'Пермский край',
+    lat: 58.0105,
+    lon: 56.2502,
+    timezone: 'Asia/Yekaterinburg'
+  },
+  {
+    id: 1486209,
+    name: 'Екатеринбург',
+    country: 'Россия',
+    admin1: 'Свердловская область',
+    lat: 56.8575,
+    lon: 60.6125,
+    timezone: 'Asia/Yekaterinburg'
+  },
+  {
+    id: 2643743,
+    name: 'Лондон',
+    country: 'Великобритания',
+    lat: 51.5085,
+    lon: -0.1257,
+    timezone: 'Europe/London'
+  },
+  {
+    id: 5128581,
+    name: 'Нью-Йорк',
+    country: 'США',
+    lat: 40.7143,
+    lon: -74.006,
+    timezone: 'America/New_York'
+  },
+  {
+    id: 1850147,
+    name: 'Токио',
+    country: 'Япония',
+    lat: 35.6895,
+    lon: 139.6917,
+    timezone: 'Asia/Tokyo'
+  }
+]
 
 function placement(id: WidgetId): WidgetPlacement {
   return { x: null, y: null, enabled: WIDGETS[id].ready && id === 'system' }
@@ -17,6 +89,27 @@ export const DEFAULT_SETTINGS: AppSettings = {
     showProgress: true,
     showControls: true,
     showSource: true
+  },
+  weather: {
+    city: {
+      id: 524901,
+      name: 'Москва',
+      country: 'Россия',
+      admin1: 'Москва',
+      lat: 55.7558,
+      lon: 37.6173,
+      timezone: 'Europe/Moscow'
+    },
+    units: 'metric',
+    provider: 'open-meteo',
+    yandexKey: '',
+    atmosphere: false,
+    forecastDays: 3,
+    showCity: true,
+    showFeelsLike: true,
+    showWind: true,
+    showHumidity: true,
+    sunMode: 'arc'
   }
 }
 

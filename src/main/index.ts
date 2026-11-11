@@ -5,6 +5,7 @@ import { MusicService } from './music'
 import { Store } from './store'
 import { SystemMonitor } from './system-monitor'
 import { AppTray } from './tray'
+import { WeatherService } from './weather'
 import { WidgetManager } from './widgets'
 
 // Отдельная папка данных: не пересекаемся со старой версией TAS Widget.
@@ -15,6 +16,7 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   const store = new Store()
   const music = new MusicService()
+  const weather = new WeatherService()
   let manager: WidgetManager | null = null
 
   app.on('second-instance', () => manager?.restore())
@@ -33,7 +35,7 @@ if (!app.requestSingleInstanceLock()) {
     music.onUpdate(snapshot => active.broadcast('music:sample', snapshot))
     const monitor = new SystemMonitor(sample => active.broadcast('system:sample', sample))
 
-    registerIpc({ store, manager: active, monitor, music })
+    registerIpc({ store, manager: active, monitor, music, weather })
     new AppTray(active).create()
     active.restore()
     monitor.start(store.state.system.intervalMs)
