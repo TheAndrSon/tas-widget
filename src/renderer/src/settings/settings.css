@@ -301,11 +301,18 @@ body {
 
 .segmented {
   display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 2px;
   padding: 2px;
   border: 1px solid var(--border);
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.045);
+}
+
+.row > .segmented {
+  flex: 0 1 auto;
+  max-width: 64%;
 }
 
 .segmented button {
@@ -569,4 +576,73 @@ body {
   font-size: 11px;
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 210px;
+}
+
+.range input[type='range'] {
+  flex: 1;
+  accent-color: #62e6ff;
+  cursor: pointer;
+}
+
+.range__value {
+  width: 52px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.range-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 240px;
+}
+
+.range-pair .range {
+  width: 100%;
+}
+
+.color-pair {
+  display: flex;
+  gap: 8px;
+}
+
+.color-input {
+  width: 34px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.align-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.align-buttons button {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.align-buttons button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
 }

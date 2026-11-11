@@ -1,5 +1,6 @@
 import type { AppSettings, City, WeatherSettings, WidgetId, WidgetPlacement } from './types'
 import { WIDGETS, readyWidgetIds } from './widgets'
+import { DEFAULT_VISUALIZER } from './visualizer'
 
 export const CITY_PRESETS: City[] = [
   {
@@ -122,6 +123,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
         settings: defaultWeatherSettings()
       }
     ]
+  },
+  equalizer: {
+    visualizer: structuredClone(DEFAULT_VISUALIZER),
+    dock: 'free',
+    dockThickness: 120,
+    displayId: null,
+    scale: 1,
+    mirrorX: false,
+    mirrorY: false
   }
 }
 

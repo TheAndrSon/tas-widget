@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from 'react'
 import type { WidgetId } from '@shared/types'
+import { EqualizerWidget } from './widgets/EqualizerWidget'
 import { MusicWidget } from './widgets/MusicWidget'
 import { SystemWidget } from './widgets/SystemWidget'
 import { WeatherWidget } from './widgets/WeatherWidget'
@@ -28,6 +29,9 @@ export function App(): ReactElement {
       break
     case 'weather':
       content = <WeatherWidget instanceId={instance} />
+      break
+    case 'equalizer':
+      content = <EqualizerWidget />
       break
     default:
       content = <Placeholder id={id ?? 'unknown'} />

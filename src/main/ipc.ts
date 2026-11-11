@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain, screen } from 'electron'
 import type {
   City,
   MusicAction,
@@ -31,6 +31,7 @@ export function registerIpc({ store, manager, monitor, music, weather }: Deps): 
     const previous = store.state.system.intervalMs
     const next = store.patch(patch)
     if (next.system.intervalMs !== previous) monitor.restart(next.system.intervalMs)
+    if (patch.equalizer) manager.applyEqualizerLayout()
     manager.broadcast('settings:changed', next)
     return next
   })
@@ -75,6 +76,24 @@ export function registerIpc({ store, manager, monitor, music, weather }: Deps): 
       )
     }
   )
+
+  ipcMain.handle('app:displays', () =>
+    screen.getAllDisplays().map(display => ({
+      id: display.id,
+      label: display.label || `Монитор ${display.id}`,
+      width: display.bounds.width,
+      height: display.bounds.height,
+      x: display.bounds.x,
+      y: display.bounds.y
+    }))
+  )
+
+  ipcMain.handle('equalizer:align', (_event, edge: unknown) => {
+    if (edge === 'top' || edge === 'bottom' || edge === 'left' || edge === 'right') {
+      manager.alignEqualizer(edge)
+    }
+    return true
+  })
 
   ipcMain.handle('weather:add', (_event, city: unknown) => {
     if (!city || typeof city !== 'object') return null

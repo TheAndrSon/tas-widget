@@ -1,5 +1,5 @@
 import { BrowserWindow, screen } from 'electron'
-import type { WebContents } from 'electron'
+import type { Display, Rectangle, WebContents } from 'electron'
 import { join } from 'node:path'
 import type { WeatherInstance, WidgetId } from '../shared/types'
 import { WIDGET_IDS, WIDGETS } from '../shared/widgets'
@@ -22,6 +22,8 @@ export class WidgetManager {
   private wins = new Map<WidgetId, BrowserWindow>()
   private weatherWins = new Map<string, BrowserWindow>()
   private moveTimers = new Map<string, NodeJS.Timeout>()
+  private applyingBounds = new Set<WidgetId>()
+  private equalizerFreeBounds: Rectangle | null = null
   private quitting = false
 
   constructor(
@@ -94,7 +96,11 @@ export class WidgetManager {
     })
 
     win.on('moved', () => {
+      if (this.applyingBounds.has(id)) return
       const [x, y] = win.getPosition()
+      if (id === 'equalizer' && this.store.state.equalizer.dock === 'free') {
+        this.equalizerFreeBounds = win.getBounds()
+      }
       const timer = this.moveTimers.get(id)
       if (timer) clearTimeout(timer)
       this.moveTimers.set(
@@ -114,6 +120,7 @@ export class WidgetManager {
 
     this.wins.set(id, win)
     this.store.setEnabled(id, true)
+    if (id === 'equalizer') this.applyEqualizerLayout()
     this.hooks.onOpen?.(id)
     return win
   }
@@ -168,6 +175,107 @@ export class WidgetManager {
     this.weatherWins.set(instance.id, win)
     this.store.setWeatherEnabled(instance.id, true)
     return win
+  }
+
+  applyEqualizerLayout(): void {
+    const win = this.wins.get('equalizer')
+    if (!win || win.isDestroyed()) return
+    const settings = this.store.state.equalizer
+    const meta = WIDGETS.equalizer
+    const bounds = win.getBounds()
+    let next: Rectangle
+
+    if (settings.dock === 'free') {
+      const saved = this.store.state.widgets.equalizer
+      const width = Math.round(meta.width * settings.scale)
+      const height = Math.round(meta.height * settings.scale)
+      const wa = this.equalizerDisplay(bounds).workArea
+      const base = this.equalizerFreeBounds ?? {
+        x: saved.x ?? bounds.x,
+        y: saved.y ?? bounds.y,
+        width,
+        height
+      }
+      next = {
+        x: Math.min(Math.max(base.x, wa.x), wa.x + wa.width - width),
+        y: Math.min(Math.max(base.y, wa.y), wa.y + wa.height - height),
+        width,
+        height
+      }
+      this.equalizerFreeBounds = next
+    } else {
+      const wa = this.equalizerDisplay(bounds).workArea
+      const thickness = Math.min(360, Math.max(48, Math.round(settings.dockThickness)))
+      if (settings.dock === 'bottom') {
+        next = { x: wa.x, y: wa.y + wa.height - thickness, width: wa.width, height: thickness }
+      } else if (settings.dock === 'top') {
+        next = { x: wa.x, y: wa.y, width: wa.width, height: thickness }
+      } else if (settings.dock === 'left') {
+        next = { x: wa.x, y: wa.y, width: thickness, height: wa.height }
+      } else {
+        next = {
+          x: wa.x + wa.width - thickness,
+          y: wa.y,
+          width: thickness,
+          height: wa.height
+        }
+      }
+    }
+
+    if (
+      bounds.x === next.x &&
+      bounds.y === next.y &&
+      bounds.width === next.width &&
+      bounds.height === next.height
+    ) {
+      return
+    }
+
+    this.applyingBounds.add('equalizer')
+    win.setBounds(next)
+    this.applyingBounds.delete('equalizer')
+    if (settings.dock === 'free') {
+      this.store.setPlacement('equalizer', next.x, next.y)
+    }
+  }
+
+  alignEqualizer(edge: 'top' | 'bottom' | 'left' | 'right'): void {
+    const win = this.wins.get('equalizer')
+    if (!win || win.isDestroyed()) return
+    if (this.store.state.equalizer.dock !== 'free') return
+    const bounds = win.getBounds()
+    const wa = this.equalizerDisplay(bounds).workArea
+    const margin = 12
+    let x = bounds.x
+    let y = bounds.y
+    if (edge === 'top') {
+      x = wa.x + Math.round((wa.width - bounds.width) / 2)
+      y = wa.y + margin
+    } else if (edge === 'bottom') {
+      x = wa.x + Math.round((wa.width - bounds.width) / 2)
+      y = wa.y + wa.height - bounds.height - margin
+    } else if (edge === 'left') {
+      x = wa.x + margin
+      y = wa.y + Math.round((wa.height - bounds.height) / 2)
+    } else {
+      x = wa.x + wa.width - bounds.width - margin
+      y = wa.y + Math.round((wa.height - bounds.height) / 2)
+    }
+    const next = { x, y, width: bounds.width, height: bounds.height }
+    this.applyingBounds.add('equalizer')
+    win.setBounds(next)
+    this.applyingBounds.delete('equalizer')
+    this.equalizerFreeBounds = next
+    this.store.setPlacement('equalizer', x, y)
+  }
+
+  private equalizerDisplay(bounds: Rectangle): Display {
+    const { displayId } = this.store.state.equalizer
+    if (displayId != null) {
+      const found = screen.getAllDisplays().find(display => display.id === displayId)
+      if (found) return found
+    }
+    return screen.getDisplayMatching(bounds)
   }
 
   close(id: WidgetId): void {

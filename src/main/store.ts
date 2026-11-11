@@ -5,12 +5,14 @@ import { DEFAULT_SETTINGS, MAX_WEATHER_CITIES, defaultWeatherSettings } from '..
 import type {
   AppSettings,
   City,
+  EqualizerSettings,
   SettingsPatch,
   WeatherInstance,
   WeatherInstancePatch,
   WeatherSettings,
   WidgetId
 } from '../shared/types'
+import { normalizeVisualizer } from '../shared/visualizer'
 import { WIDGET_IDS } from '../shared/widgets'
 
 function clamp01(value: number): number {
@@ -71,6 +73,34 @@ function normalizeWeatherSettings(raw: unknown): WeatherSettings {
   if (source.sunMode === 'off' || source.sunMode === 'compact' || source.sunMode === 'arc') {
     settings.sunMode = source.sunMode
   }
+  return settings
+}
+
+function normalizeEqualizer(raw: unknown): EqualizerSettings {
+  const settings = structuredClone(DEFAULT_SETTINGS.equalizer)
+  if (!raw || typeof raw !== 'object') return settings
+  const source = raw as Partial<EqualizerSettings>
+  settings.visualizer = normalizeVisualizer(source.visualizer)
+  if (
+    source.dock === 'free' ||
+    source.dock === 'top' ||
+    source.dock === 'bottom' ||
+    source.dock === 'left' ||
+    source.dock === 'right'
+  ) {
+    settings.dock = source.dock
+  }
+  if (typeof source.dockThickness === 'number' && Number.isFinite(source.dockThickness)) {
+    settings.dockThickness = Math.min(360, Math.max(48, Math.round(source.dockThickness)))
+  }
+  if (source.displayId === null || typeof source.displayId === 'number') {
+    settings.displayId = source.displayId
+  }
+  if (typeof source.scale === 'number' && Number.isFinite(source.scale)) {
+    settings.scale = Math.min(3, Math.max(0.5, source.scale))
+  }
+  if (typeof source.mirrorX === 'boolean') settings.mirrorX = source.mirrorX
+  if (typeof source.mirrorY === 'boolean') settings.mirrorY = source.mirrorY
   return settings
 }
 
@@ -150,6 +180,7 @@ function normalize(raw: unknown): AppSettings {
   }
 
   state.weather.instances = normalizeWeather(source.weather, source.widgets?.weather)
+  state.equalizer = normalizeEqualizer(source.equalizer)
 
   return state
 }
@@ -176,6 +207,15 @@ export class Store {
     }
     if (patch.music) {
       this.state.music = { ...this.state.music, ...patch.music }
+    }
+    if (patch.equalizer) {
+      const next = { ...this.state.equalizer, ...patch.equalizer }
+      if (patch.equalizer.visualizer) {
+        next.visualizer = normalizeVisualizer(patch.equalizer.visualizer)
+      }
+      next.dockThickness = Math.min(360, Math.max(48, Math.round(next.dockThickness)))
+      next.scale = Math.min(3, Math.max(0.5, next.scale))
+      this.state.equalizer = next
     }
     if (patch.widgets) {
       for (const id of WIDGET_IDS) {

@@ -35,6 +35,11 @@ const api = {
     subscribe('settings:changed', listener),
   onSettingsTab: (listener: (tab: WidgetId) => void): (() => void) =>
     subscribe('settings:tab', listener),
+  getDisplays: (): Promise<
+    Array<{ id: number; label: string; width: number; height: number; x: number; y: number }>
+  > => ipcRenderer.invoke('app:displays'),
+  alignEqualizer: (edge: 'top' | 'bottom' | 'left' | 'right'): Promise<boolean> =>
+    ipcRenderer.invoke('equalizer:align', edge),
   getMusic: (): Promise<MusicSnapshot> => ipcRenderer.invoke('music:get'),
   onMusicSample: (listener: (snapshot: MusicSnapshot) => void): (() => void) =>
     subscribe('music:sample', listener),

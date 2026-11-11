@@ -1,4 +1,4 @@
-import { app } from 'electron'
+import { app, desktopCapturer, session } from 'electron'
 import { join } from 'node:path'
 import { registerIpc } from './ipc'
 import { MusicService } from './music'
@@ -22,6 +22,28 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', () => manager?.restore())
 
   void app.whenReady().then(() => {
+    try {
+      session.defaultSession.setDisplayMediaRequestHandler(async (_request, callback) => {
+        try {
+          const sources = await desktopCapturer.getSources({
+            types: ['screen'],
+            thumbnailSize: { width: 0, height: 0 }
+          })
+          const source = sources[0]
+          if (source) callback({ video: source, audio: 'loopback' })
+          else callback({})
+        } catch (error) {
+          console.error('[audio] display media source', error)
+          callback({})
+        }
+      })
+      session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+        callback(permission === 'media' || permission === 'display-capture')
+      })
+    } catch (error) {
+      console.error('[audio] display capture недоступен', error)
+    }
+
     store.load()
     manager = new WidgetManager(store, {
       onOpen: id => {

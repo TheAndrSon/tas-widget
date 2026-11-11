@@ -85,17 +85,65 @@ export interface WeatherInstancePatch {
   settings?: Partial<WeatherSettings>
 }
 
+export type VisualizerMode =
+  'off' | 'bars' | 'ring' | 'sparks' | 'radial' | 'mirror' | 'dots' | 'line'
+export type VisualizerPalette =
+  'neon' | 'sunset' | 'ice' | 'matrix' | 'candy' | 'gradient' | 'custom'
+export type AudioSource = 'system' | 'window' | 'multi'
+
+export interface VisualizerSettings {
+  mode: VisualizerMode
+  palette: VisualizerPalette
+  color1: string
+  color2: string
+  /** 0.2..2 */
+  intensity: number
+  /** 12..1200; по умолчанию 64 */
+  bars: number
+  /** максимальная высота столбика, % высоты виджета */
+  maxHeight: number
+  source: AudioSource
+  audioWindowIds: string[]
+  mirrorOrigin: 'start' | 'end'
+  /** нижняя и верхняя граница частот, Гц */
+  freqMin: number
+  freqMax: number
+  freqScale: 'log' | 'linear'
+  ringThickness: number
+  ringPulse: number
+  gradientAngle: number
+  gradientScale: number
+  gradientSpeed: number
+}
+
+export type EqualizerDock = 'free' | 'bottom' | 'top' | 'left' | 'right'
+
+export interface EqualizerSettings {
+  visualizer: VisualizerSettings
+  /** обычное окно или полоса по краю монитора */
+  dock: EqualizerDock
+  dockThickness: number
+  /** выбранный монитор; null — текущий */
+  displayId: number | null
+  /** 0.5..3 — масштаб свободного окна */
+  scale: number
+  mirrorX: boolean
+  mirrorY: boolean
+}
+
 export interface AppSettings {
   widgets: Record<WidgetId, WidgetPlacement>
   system: SystemSettings
   music: MusicSettings
   weather: WeatherState
+  equalizer: EqualizerSettings
 }
 
 export type SettingsPatch = {
   widgets?: Partial<Record<WidgetId, Partial<WidgetPlacement>>>
   system?: Partial<SystemSettings>
   music?: Partial<MusicSettings>
+  equalizer?: Partial<EqualizerSettings>
 }
 
 export interface DiskSample {
