@@ -168,7 +168,9 @@ export interface WeatherInstancePatch {
   settings?: Partial<WeatherSettings>
 }
 
-export type VisualizerMode = 'off' | 'bars' | 'radial' | 'line' | 'dots' | 'sparks' | 'waves'
+export type VisualizerMode =
+  'off' | 'bars' | 'radial' | 'line' | 'dots' | 'particles' | 'waves' | 'waveform'
+export type BarShape = 'rounded' | 'rect'
 export type VisualizerPalette =
   'neon' | 'sunset' | 'ice' | 'matrix' | 'candy' | 'aurora' | 'fire' | 'custom'
 
@@ -185,6 +187,7 @@ export interface VisualizerSettings {
   barThickness: number
   /** расстояние между столбиками, px */
   barGap: number
+  barShape: BarShape
   /** максимальная высота, % высоты окна */
   maxHeight: number
   /** зеркальная копия относительно оси */
@@ -199,9 +202,20 @@ export interface VisualizerSettings {
   dotSize: number
   sparkSize: number
   sparkSpeed: number
+  particleOrigin: 'bottom' | 'center'
+  particleCount: number
+  particleReactivity: number
   waveCount: number
   waveSpeed: number
   waveThickness: number
+  waveLife: number
+  waveIntensity: number
+  waveRadius: number
+  glowEnabled: boolean
+  glowIntensity: number
+  glowSpread: number
+  mirrorOffsetX: number
+  mirrorOffsetY: number
   /** нижняя и верхняя граница частот, Гц */
   freqMin: number
   freqMax: number
@@ -212,7 +226,9 @@ export interface EqualizerSettings {
   visualizer: VisualizerSettings
   /** окно с фоном или прозрачная визуализация без рамки */
   windowed: boolean
-  /** выбранный монитор для центрирования; null — текущий */
+  /** растянуть окно на весь рабочий стол выбранного монитора */
+  stretch: boolean
+  /** выбранный монитор для центрирования/растягивания; null — текущий */
   displayId: number | null
 }
 

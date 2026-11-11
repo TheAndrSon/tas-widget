@@ -210,7 +210,10 @@ export function registerIpc({ store, manager, monitor, music, weather, assets }:
   ipcMain.handle('equalizer:patch', (_event, id: unknown, patch: unknown) => {
     if (typeof id !== 'string' || !patch || typeof patch !== 'object') return null
     const instance = store.updateEqualizer(id, patch as EqualizerInstancePatch)
-    if (instance) manager.broadcast('settings:changed', store.state)
+    if (instance) {
+      manager.applyEqualizerLayout(id)
+      manager.broadcast('settings:changed', store.state)
+    }
     return instance
   })
 

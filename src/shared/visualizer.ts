@@ -9,6 +9,7 @@ export const DEFAULT_VISUALIZER: VisualizerSettings = {
   bars: 64,
   barThickness: 6,
   barGap: 3,
+  barShape: 'rounded',
   maxHeight: 90,
   mirror: false,
   axis: 0.5,
@@ -19,9 +20,20 @@ export const DEFAULT_VISUALIZER: VisualizerSettings = {
   dotSize: 3,
   sparkSize: 2,
   sparkSpeed: 1,
+  particleOrigin: 'bottom',
+  particleCount: 120,
+  particleReactivity: 1,
   waveCount: 4,
   waveSpeed: 1,
   waveThickness: 2,
+  waveLife: 2.4,
+  waveIntensity: 1,
+  waveRadius: 20,
+  glowEnabled: false,
+  glowIntensity: 0.5,
+  glowSpread: 12,
+  mirrorOffsetX: 0,
+  mirrorOffsetY: 0,
   freqMin: 30,
   freqMax: 16000,
   freqScale: 'log'
@@ -32,8 +44,9 @@ export const VISUALIZER_MODES: Array<{ value: VisualizerSettings['mode']; label:
   { value: 'bars', label: 'Столбики' },
   { value: 'radial', label: 'Радиальные' },
   { value: 'line', label: 'Линия' },
+  { value: 'waveform', label: 'Сплошная волна' },
   { value: 'dots', label: 'Точки' },
-  { value: 'sparks', label: 'Искры' },
+  { value: 'particles', label: 'Частицы' },
   { value: 'waves', label: 'Волны' }
 ]
 
@@ -62,17 +75,20 @@ export function normalizeVisualizer(
     : 'neon'
   const preset = VISUALIZER_PALETTES.find(item => item.value === palette)
 
+  const rawMode = String(value.mode ?? 'off')
+  const mode = rawMode === 'sparks' ? 'particles' : rawMode
   return {
-    mode: VISUALIZER_MODES.some(item => item.value === value.mode)
-      ? (value.mode as VisualizerSettings['mode'])
+    mode: VISUALIZER_MODES.some(item => item.value === mode)
+      ? (mode as VisualizerSettings['mode'])
       : 'off',
     palette,
     color1: value.color1 || preset?.color1 || '#62e6ff',
     color2: value.color2 || preset?.color2 || '#a56bff',
     intensity: Math.min(2, Math.max(0.2, Number(value.intensity ?? 0.9))),
-    bars: Math.min(256, Math.max(12, Math.round(Number(value.bars ?? 64)))),
+    bars: Math.min(3600, Math.max(12, Math.round(Number(value.bars ?? 64)))),
     barThickness: Math.min(60, Math.max(1, Math.round(Number(value.barThickness ?? 6)))),
     barGap: Math.min(40, Math.max(0, Math.round(Number(value.barGap ?? 3)))),
+    barShape: value.barShape === 'rect' ? 'rect' : 'rounded',
     maxHeight: Math.min(100, Math.max(10, Math.round(Number(value.maxHeight ?? 90)))),
     mirror: value.mirror ?? false,
     axis: Math.min(1, Math.max(0, Number(value.axis ?? 0.5))),
@@ -83,9 +99,20 @@ export function normalizeVisualizer(
     dotSize: Math.min(30, Math.max(1, Number(value.dotSize ?? 3))),
     sparkSize: Math.min(20, Math.max(0.5, Number(value.sparkSize ?? 2))),
     sparkSpeed: Math.min(5, Math.max(0.2, Number(value.sparkSpeed ?? 1))),
-    waveCount: Math.min(12, Math.max(1, Math.round(Number(value.waveCount ?? 4)))),
+    particleOrigin: value.particleOrigin === 'center' ? 'center' : 'bottom',
+    particleCount: Math.min(1200, Math.max(20, Math.round(Number(value.particleCount ?? 120)))),
+    particleReactivity: Math.min(3, Math.max(0, Number(value.particleReactivity ?? 1))),
+    waveCount: Math.min(24, Math.max(1, Math.round(Number(value.waveCount ?? 4)))),
     waveSpeed: Math.min(5, Math.max(0.2, Number(value.waveSpeed ?? 1))),
     waveThickness: Math.min(24, Math.max(1, Number(value.waveThickness ?? 2))),
+    waveLife: Math.min(8, Math.max(0.4, Number(value.waveLife ?? 2.4))),
+    waveIntensity: Math.min(2, Math.max(0.1, Number(value.waveIntensity ?? 1))),
+    waveRadius: Math.min(400, Math.max(2, Number(value.waveRadius ?? 20))),
+    glowEnabled: Boolean(value.glowEnabled),
+    glowIntensity: Math.min(1, Math.max(0, Number(value.glowIntensity ?? 0.5))),
+    glowSpread: Math.min(60, Math.max(0, Number(value.glowSpread ?? 12))),
+    mirrorOffsetX: Math.min(600, Math.max(-600, Number(value.mirrorOffsetX ?? 0))),
+    mirrorOffsetY: Math.min(600, Math.max(-600, Number(value.mirrorOffsetY ?? 0))),
     freqMin: Math.min(8000, Math.max(20, Number(value.freqMin ?? 30))),
     freqMax: Math.min(
       22000,

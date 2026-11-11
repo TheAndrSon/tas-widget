@@ -13,6 +13,7 @@ interface Particle {
 
 interface Wave {
   radius: number
+  age: number
   strength: number
 }
 
@@ -114,30 +115,36 @@ export function Visualizer({
       context.scale(s.mirrorX ? -1 : 1, s.mirrorY ? -1 : 1)
       context.translate(-width / 2, -height / 2)
 
+      if (s.glowEnabled && (s.mode !== 'bars' || count <= 800)) {
+        context.shadowColor = rgba([r1, g1, b1], s.glowIntensity)
+        context.shadowBlur = s.glowSpread
+      }
+
       if (s.mode === 'bars') {
         const step = s.barThickness + s.barGap
         const group = count * s.barThickness + Math.max(0, count - 1) * s.barGap
         const axisX = width * s.axis
         const startX = axisX - group / 2
         const limit = height * maxHeight
-        const gradientCache = new Map<number, CanvasGradient>()
+        const gradientCache = new Map<string, CanvasGradient>()
 
-        const drawBar = (x: number, value: number): void => {
+        const drawBar = (x: number, value: number, offsetY = 0): void => {
           const barHeight = Math.max(1, limit * Math.min(1, value * intensity * 1.3))
-          const key = Math.round(barHeight)
+          const top = height - barHeight + offsetY
+          const key = `${Math.round(barHeight)}:${Math.round(offsetY)}`
           let fill = gradientCache.get(key)
           if (!fill) {
-            fill = context.createLinearGradient(0, height - barHeight, 0, height)
+            fill = context.createLinearGradient(0, top, 0, top + barHeight)
             fill.addColorStop(0, rgba([r2, g2, b2], 0.95))
             fill.addColorStop(1, rgba([r1, g1, b1], 0.2))
             gradientCache.set(key, fill)
           }
           context.fillStyle = fill
           context.beginPath()
-          if (s.barThickness >= 2) {
-            context.roundRect(x, height - barHeight, s.barThickness, barHeight, s.barThickness / 2)
+          if (s.barShape === 'rounded' && s.barThickness >= 2) {
+            context.roundRect(x, top, s.barThickness, barHeight, s.barThickness / 2)
           } else {
-            context.rect(x, height - barHeight, s.barThickness, barHeight)
+            context.rect(x, top, s.barThickness, barHeight)
           }
           context.fill()
         }
@@ -146,7 +153,9 @@ export function Visualizer({
           const value = levels[index] ?? 0
           const x = startX + index * step
           drawBar(x, value)
-          if (s.mirror) drawBar(2 * axisX - x - s.barThickness, value)
+          if (s.mirror) {
+            drawBar(2 * axisX - x - s.barThickness + s.mirrorOffsetX, value, s.mirrorOffsetY)
+          }
         }
       } else if (s.mode === 'radial') {
         const cx = width / 2
@@ -180,8 +189,13 @@ export function Visualizer({
           context.moveTo(cx + Math.cos(angle) * base, cy + Math.sin(angle) * base)
           context.lineTo(cx + Math.cos(angle) * (base + len), cy + Math.sin(angle) * (base + len))
           if (s.mirror) {
-            context.moveTo(cx - Math.cos(angle) * base, cy - Math.sin(angle) * base)
-            context.lineTo(cx - Math.cos(angle) * (base + len), cy - Math.sin(angle) * (base + len))
+            const mx = s.mirrorOffsetX
+            const my = s.mirrorOffsetY
+            context.moveTo(cx - Math.cos(angle) * base + mx, cy - Math.sin(angle) * base + my)
+            context.lineTo(
+              cx - Math.cos(angle) * (base + len) + mx,
+              cy - Math.sin(angle) * (base + len) + my
+            )
           }
           context.stroke()
         }
@@ -198,8 +212,9 @@ export function Visualizer({
             const high = Math.min(count - 1, low + 1)
             const value =
               (levels[low] ?? 0) + ((levels[high] ?? 0) - (levels[low] ?? 0)) * (source - low)
-            const x = ratio * width
-            const y = axisY + (mirrored ? 1 : -1) * value * amplitude
+            const x = ratio * width + (mirrored ? s.mirrorOffsetX : 0)
+            const y =
+              axisY + (mirrored ? 1 : -1) * value * amplitude + (mirrored ? s.mirrorOffsetY : 0)
             if (index === 0) context.moveTo(x, y)
             else context.lineTo(x, y)
           }
@@ -214,6 +229,69 @@ export function Visualizer({
         context.lineCap = 'round'
         strokeLine(false)
         if (s.mirror) strokeLine(true)
+      } else if (s.mode === 'waveform') {
+        const axisY = height * s.axis
+        const amplitude = height * 0.38 * maxHeight * intensity
+        const points = Math.max(48, Math.min(720, count))
+        const values: number[] = []
+        for (let index = 0; index < points; index += 1) {
+          const source = (index / Math.max(1, points - 1)) * (count - 1)
+          const low = Math.floor(source)
+          const high = Math.min(count - 1, low + 1)
+          let sum = 0
+          let weight = 0
+          for (let tap = -2; tap <= 2; tap += 1) {
+            const sample = Math.max(0, Math.min(count - 1, low + tap))
+            const factor = 3 - Math.abs(tap)
+            sum += (levels[sample] ?? 0) * factor
+            weight += factor
+          }
+          values.push(sum / Math.max(1, weight))
+        }
+
+        const drawShape = (): void => {
+          context.beginPath()
+          for (let index = 0; index < points; index += 1) {
+            const x = (index / Math.max(1, points - 1)) * width
+            const top = axisY - values[index] * amplitude
+            if (index === 0) context.moveTo(x, top)
+            else context.lineTo(x, top)
+          }
+          for (let index = points - 1; index >= 0; index -= 1) {
+            const x = (index / Math.max(1, points - 1)) * width
+            const bottom = axisY + values[index] * amplitude * 0.35
+            context.lineTo(x, bottom)
+          }
+          context.closePath()
+          const fill = context.createLinearGradient(
+            0,
+            axisY - amplitude,
+            0,
+            axisY + amplitude * 0.4
+          )
+          fill.addColorStop(0, rgba([r2, g2, b2], 0.85))
+          fill.addColorStop(1, rgba([r1, g1, b1], 0.22))
+          context.fillStyle = fill
+          context.fill()
+          context.strokeStyle = rgba([r2, g2, b2], 0.9)
+          context.lineWidth = s.lineThickness
+          context.stroke()
+        }
+
+        if (s.glowEnabled) {
+          context.shadowColor = rgba([r1, g1, b1], s.glowIntensity)
+          context.shadowBlur = s.glowSpread
+        }
+        drawShape()
+        if (s.mirror) {
+          context.save()
+          context.translate(s.mirrorOffsetX, s.mirrorOffsetY)
+          context.translate(0, 2 * axisY)
+          context.scale(1, -1)
+          drawShape()
+          context.restore()
+        }
+        context.shadowBlur = 0
       } else if (s.mode === 'dots') {
         const cell = s.dotSize + s.barGap
         const columns = Math.max(1, Math.min(count, Math.floor(width / Math.max(2, cell))))
@@ -222,7 +300,7 @@ export function Visualizer({
         const axisX = width * s.axis
         const startX = axisX - group / 2
 
-        const drawGrid = (origin: number, direction: number): void => {
+        const drawGrid = (origin: number, direction: number, offsetX = 0, offsetY = 0): void => {
           for (let column = 0; column < columns; column += 1) {
             const sourceIndex = Math.min(
               count - 1,
@@ -231,8 +309,8 @@ export function Visualizer({
             const value = Math.min(1, (levels[sourceIndex] ?? 0) * intensity * 1.5)
             const active = Math.round(rows * value * maxHeight)
             for (let row = 0; row < rows; row += 1) {
-              const x = origin + direction * (column * cell)
-              const y = height - (row + 1) * cell + s.barGap / 2
+              const x = origin + direction * (column * cell) + offsetX
+              const y = height - (row + 1) * cell + s.barGap / 2 + offsetY
               context.fillStyle =
                 row < active
                   ? rgba([r2, g2, b2], 0.35 + (row / rows) * 0.6)
@@ -245,26 +323,45 @@ export function Visualizer({
         }
 
         drawGrid(startX, 1)
-        if (s.mirror) drawGrid(2 * axisX - startX, -1)
-      } else if (s.mode === 'sparks') {
+        if (s.mirror) {
+          drawGrid(2 * axisX - startX, -1, s.mirrorOffsetX, s.mirrorOffsetY)
+        }
+      } else if (s.mode === 'particles') {
         const axisX = width * s.axis
-        const speed = s.sparkSpeed * (0.35 + energy * 2.4)
-        const spawnChance = 0.18 + energy * 1.6
+        const reactivity = s.particleReactivity
+        const speed = s.sparkSpeed * (0.25 + energy * 2.8 * reactivity)
+        const spawnChance = 0.1 + energy * 1.8 * reactivity
 
         if (Math.random() < spawnChance) {
-          particles.push({
-            x: axisX + (Math.random() - 0.5) * width * 0.7,
-            y: height + Math.random() * 12,
-            vx: (Math.random() - 0.5) * 22,
-            vy: -(16 + Math.random() * 40) * (0.5 + s.sparkSpeed),
-            life: 0.7 + Math.random() * 1.3,
-            size: s.sparkSize * (0.6 + Math.random() * 0.8)
-          })
-          particles = particles.slice(-220)
+          if (s.particleOrigin === 'center') {
+            const angle = Math.random() * Math.PI * 2
+            const distance = 8 + Math.random() * Math.min(width, height) * 0.28
+            const outward = 18 + Math.random() * 46
+            particles.push({
+              x: width / 2 + Math.cos(angle) * distance,
+              y: height / 2 + Math.sin(angle) * distance,
+              vx: Math.cos(angle) * outward,
+              vy: Math.sin(angle) * outward,
+              life: 0.8 + Math.random() * 1.4,
+              size: s.sparkSize * (0.6 + Math.random() * 0.8)
+            })
+          } else {
+            particles.push({
+              x: axisX + (Math.random() - 0.5) * width,
+              y: height + Math.random() * 12,
+              vx: (Math.random() - 0.5) * 26,
+              vy: -(16 + Math.random() * 44) * (0.5 + s.sparkSpeed),
+              life: 0.7 + Math.random() * 1.4,
+              size: s.sparkSize * (0.6 + Math.random() * 0.8)
+            })
+          }
+          particles = particles.slice(-s.particleCount)
         }
 
-        context.shadowColor = rgba([r1, g1, b1], 0.8)
-        context.shadowBlur = 8
+        if (s.glowEnabled) {
+          context.shadowColor = rgba([r1, g1, b1], s.glowIntensity)
+          context.shadowBlur = s.glowSpread
+        }
         for (const particle of particles) {
           particle.x += particle.vx * delta * speed
           particle.y += particle.vy * delta * speed
@@ -278,50 +375,61 @@ export function Visualizer({
           context.fill()
           if (s.mirror) {
             context.beginPath()
-            context.arc(2 * axisX - particle.x, particle.y, particle.size, 0, Math.PI * 2)
+            context.arc(
+              2 * axisX - particle.x + s.mirrorOffsetX,
+              particle.y + s.mirrorOffsetY,
+              particle.size,
+              0,
+              Math.PI * 2
+            )
             context.fill()
           }
         }
         context.shadowBlur = 0
-        particles = particles.filter(particle => particle.life > 0 && particle.y > -40)
+        particles = particles.filter(
+          particle => particle.life > 0 && particle.y > -80 && particle.y < height + 80
+        )
       } else if (s.mode === 'waves') {
         const cx = width / 2
         const cy = height / 2
-        const base = Math.min(width, height) * 0.13
-        const maxRadius = Math.hypot(width, height) * 0.55
+        const base = Math.max(2, s.waveRadius)
+        const life = Math.max(0.4, s.waveLife)
+        const wavePower = s.waveIntensity
         const pulse = 0.85 + energy * 0.5 * intensity
         waveClock -= delta
 
-        if (waveClock <= 0 && energy > 0.02) {
-          if (waves.length < s.waveCount) {
-            waves.push({ radius: base, strength: Math.min(1, 0.35 + energy * 1.4) })
-          }
+        if (waveClock <= 0 && energy > 0.02 && waves.length < s.waveCount) {
+          waves.push({ radius: base, age: 0, strength: Math.min(1, 0.35 + energy * 1.4) })
           waveClock = 0.55 / Math.max(0.2, s.waveSpeed * (0.4 + energy))
         }
 
         const glow = context.createRadialGradient(cx, cy, base * 0.2, cx, cy, base * 2.4 * pulse)
-        glow.addColorStop(0, rgba([r2, g2, b2], 0.5 * intensity))
-        glow.addColorStop(0.5, rgba([r1, g1, b1], 0.18 * intensity))
+        glow.addColorStop(0, rgba([r2, g2, b2], 0.5 * intensity * wavePower))
+        glow.addColorStop(0.5, rgba([r1, g1, b1], 0.18 * intensity * wavePower))
         glow.addColorStop(1, rgba([r1, g1, b1], 0))
         context.fillStyle = glow
         context.fillRect(0, 0, width, height)
 
         context.strokeStyle = rgba([r2, g2, b2], 0.85)
         context.lineWidth = s.waveThickness
-        context.shadowColor = rgba([r2, g2, b2], 0.9)
-        context.shadowBlur = 10 + energy * 24
+        if (s.glowEnabled) {
+          context.shadowColor = rgba([r2, g2, b2], s.glowIntensity)
+          context.shadowBlur = s.glowSpread
+        }
         context.beginPath()
         context.arc(cx, cy, base * pulse, 0, Math.PI * 2)
         context.stroke()
         context.shadowBlur = 0
 
-        waves = waves.filter(wave => wave.radius < maxRadius)
+        waves = waves.filter(wave => wave.age < life)
         for (const wave of waves) {
-          wave.radius += (60 + energy * 160) * s.waveSpeed * delta
-          const fade = Math.max(0, 1 - (wave.radius - base) / maxRadius)
+          wave.age += delta
+          wave.radius += (70 + energy * 170) * s.waveSpeed * delta
+          const progress = Math.min(1, wave.age / life)
+          const fade = 1 - progress
           context.strokeStyle = rgba(
             wave.strength > 0.7 ? [r2, g2, b2] : [r1, g1, b1],
-            0.55 * fade * wave.strength
+            0.65 * fade * wave.strength * wavePower
           )
           context.lineWidth = Math.max(1, s.waveThickness * fade)
           context.beginPath()
@@ -330,6 +438,7 @@ export function Visualizer({
         }
       }
 
+      context.shadowBlur = 0
       context.restore()
       frame = requestAnimationFrame(draw)
     }

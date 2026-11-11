@@ -97,6 +97,7 @@ function normalizeEqualizerSettings(raw: unknown): EqualizerSettings {
   const source = raw as Partial<EqualizerSettings>
   settings.visualizer = normalizeVisualizer(source.visualizer)
   if (typeof source.windowed === 'boolean') settings.windowed = source.windowed
+  if (typeof source.stretch === 'boolean') settings.stretch = source.stretch
   if (source.displayId === null || typeof source.displayId === 'number') {
     settings.displayId = source.displayId
   }

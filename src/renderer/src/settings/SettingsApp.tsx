@@ -830,6 +830,58 @@ function WindowStyleControls({
   )
 }
 
+function NumberSlider({
+  min,
+  max,
+  step,
+  value,
+  onChange,
+  suffix
+}: {
+  min: number
+  max: number
+  step: number
+  value: number
+  onChange: (value: number) => void
+  suffix?: string
+}): ReactElement {
+  const [local, setLocal] = useState(value)
+
+  useEffect(() => {
+    setLocal(value)
+  }, [value])
+
+  const commit = (next: number): void => {
+    if (!Number.isFinite(next)) return
+    const clamped = Math.min(max, Math.max(min, next))
+    setLocal(clamped)
+    onChange(clamped)
+  }
+
+  return (
+    <div className="number-slider">
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={local}
+        onChange={event => commit(Number(event.target.value))}
+      />
+      <input
+        type="number"
+        className="number-input"
+        min={min}
+        max={max}
+        step={step}
+        value={Math.round(local * 100) / 100}
+        onChange={event => commit(Number(event.target.value))}
+      />
+      {suffix && <span className="number-suffix">{suffix}</span>}
+    </div>
+  )
+}
+
 function SystemPanel({ settings, patch, toggleWidget, refresh }: PanelProps): ReactElement {
   return (
     <section className="panel">
@@ -975,7 +1027,7 @@ function VisualizerControls({
 }): ReactElement {
   const set = (patch: Partial<VisualizerSettings>): void => onChange({ ...value, ...patch })
   const mode = value.mode
-  const spectrum = ['bars', 'radial', 'line', 'dots'].includes(mode)
+  const spectrum = ['bars', 'radial', 'line', 'waveform', 'dots'].includes(mode)
   const hasAxis = ['bars', 'line', 'dots', 'sparks'].includes(mode)
 
   return (
@@ -1066,19 +1118,34 @@ function VisualizerControls({
             />
           </div>
 
-          {['bars', 'radial', 'line', 'dots'].includes(mode) && (
+          {['bars', 'radial', 'line', 'waveform', 'dots'].includes(mode) && (
             <div className="row">
               <div className="row__text">
                 <span className="row__label">Количество</span>
-                <span className="row__hint">12–256 элементов</span>
+                <span className="row__hint">12–3600 элементов, можно ввести число</span>
               </div>
-              <Slider
+              <NumberSlider
                 min={12}
-                max={256}
+                max={3600}
                 step={1}
                 value={value.bars}
                 onChange={bars => set({ bars })}
-                format={item => String(item)}
+              />
+            </div>
+          )}
+
+          {mode === 'bars' && (
+            <div className="row">
+              <div className="row__text">
+                <span className="row__label">Форма столбиков</span>
+              </div>
+              <Segmented
+                value={value.barShape}
+                options={[
+                  { value: 'rounded', label: 'Закруглённые' },
+                  { value: 'rect', label: 'Прямоугольные' }
+                ]}
+                onChange={barShape => set({ barShape })}
               />
             </div>
           )}
@@ -1177,11 +1244,51 @@ function VisualizerControls({
             </>
           )}
 
-          {mode === 'sparks' && (
+          {mode === 'particles' && (
             <>
               <div className="row">
                 <div className="row__text">
-                  <span className="row__label">Размер искр</span>
+                  <span className="row__label">Источник частиц</span>
+                  <span className="row__hint">Из низа окна или из центра с разбросом</span>
+                </div>
+                <Segmented
+                  value={value.particleOrigin}
+                  options={[
+                    { value: 'bottom', label: 'Снизу' },
+                    { value: 'center', label: 'Из центра' }
+                  ]}
+                  onChange={particleOrigin => set({ particleOrigin })}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Количество частиц</span>
+                </div>
+                <NumberSlider
+                  min={20}
+                  max={1200}
+                  step={10}
+                  value={value.particleCount}
+                  onChange={particleCount => set({ particleCount })}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Реакция на музыку</span>
+                  <span className="row__hint">Насколько резко ускоряются на битах</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={3}
+                  step={0.05}
+                  value={value.particleReactivity}
+                  onChange={particleReactivity => set({ particleReactivity })}
+                  format={item => `${item.toFixed(2)}×`}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Размер частиц</span>
                 </div>
                 <Slider
                   min={0.5}
@@ -1194,8 +1301,7 @@ function VisualizerControls({
               </div>
               <div className="row">
                 <div className="row__text">
-                  <span className="row__label">Скорость</span>
-                  <span className="row__hint">Ускоряются от громкости</span>
+                  <span className="row__label">Базовая скорость</span>
                 </div>
                 <Slider
                   min={0.2}
@@ -1216,13 +1322,12 @@ function VisualizerControls({
                   <span className="row__label">Количество волн</span>
                   <span className="row__hint">Сколько волн одновременно</span>
                 </div>
-                <Slider
+                <NumberSlider
                   min={1}
-                  max={12}
+                  max={24}
                   step={1}
                   value={value.waveCount}
                   onChange={waveCount => set({ waveCount })}
-                  format={item => String(item)}
                 />
               </div>
               <div className="row">
@@ -1236,6 +1341,46 @@ function VisualizerControls({
                   value={value.waveSpeed}
                   onChange={waveSpeed => set({ waveSpeed })}
                   format={item => `${item.toFixed(1)}×`}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Время жизни</span>
+                  <span className="row__hint">Сколько живёт волна до растворения</span>
+                </div>
+                <Slider
+                  min={0.4}
+                  max={8}
+                  step={0.1}
+                  value={value.waveLife}
+                  onChange={waveLife => set({ waveLife })}
+                  format={item => `${item.toFixed(1)} с`}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Интенсивность</span>
+                </div>
+                <Slider
+                  min={0.1}
+                  max={2}
+                  step={0.05}
+                  value={value.waveIntensity}
+                  onChange={waveIntensity => set({ waveIntensity })}
+                  format={item => `${Math.round(item * 100)}%`}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Начальный радиус</span>
+                </div>
+                <NumberSlider
+                  min={2}
+                  max={400}
+                  step={1}
+                  value={value.waveRadius}
+                  onChange={waveRadius => set({ waveRadius })}
+                  suffix="px"
                 />
               </div>
               <div className="row">
@@ -1276,17 +1421,80 @@ function VisualizerControls({
                   format={item => `${Math.round(item * 100)}%`}
                 />
               </div>
+              {value.mirror && (
+                <>
+                  <div className="row">
+                    <div className="row__text">
+                      <span className="row__label">Сдвиг отражения X</span>
+                      <span className="row__hint">Ось остаётся на месте</span>
+                    </div>
+                    <NumberSlider
+                      min={-600}
+                      max={600}
+                      step={1}
+                      value={value.mirrorOffsetX}
+                      onChange={mirrorOffsetX => set({ mirrorOffsetX })}
+                      suffix="px"
+                    />
+                  </div>
+                  <div className="row">
+                    <div className="row__text">
+                      <span className="row__label">Сдвиг отражения Y</span>
+                    </div>
+                    <NumberSlider
+                      min={-600}
+                      max={600}
+                      step={1}
+                      value={value.mirrorOffsetY}
+                      onChange={mirrorOffsetY => set({ mirrorOffsetY })}
+                      suffix="px"
+                    />
+                  </div>
+                </>
+              )}
             </>
           )}
 
           {mode === 'radial' && (
-            <div className="row">
-              <div className="row__text">
-                <span className="row__label">Отражение</span>
-                <span className="row__hint">Лучи с противоположной стороны</span>
+            <>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Отражение</span>
+                  <span className="row__hint">Лучи с противоположной стороны</span>
+                </div>
+                <Switch checked={value.mirror} onChange={mirror => set({ mirror })} />
               </div>
-              <Switch checked={value.mirror} onChange={mirror => set({ mirror })} />
-            </div>
+              {value.mirror && (
+                <>
+                  <div className="row">
+                    <div className="row__text">
+                      <span className="row__label">Сдвиг отражения X</span>
+                    </div>
+                    <NumberSlider
+                      min={-600}
+                      max={600}
+                      step={1}
+                      value={value.mirrorOffsetX}
+                      onChange={mirrorOffsetX => set({ mirrorOffsetX })}
+                      suffix="px"
+                    />
+                  </div>
+                  <div className="row">
+                    <div className="row__text">
+                      <span className="row__label">Сдвиг отражения Y</span>
+                    </div>
+                    <NumberSlider
+                      min={-600}
+                      max={600}
+                      step={1}
+                      value={value.mirrorOffsetY}
+                      onChange={mirrorOffsetY => set({ mirrorOffsetY })}
+                      suffix="px"
+                    />
+                  </div>
+                </>
+              )}
+            </>
           )}
 
           <div className="row">
@@ -1317,6 +1525,45 @@ function VisualizerControls({
             <Switch checked={value.mirrorY} onChange={mirrorY => set({ mirrorY })} />
           </div>
 
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Свечение визуализации</span>
+              <span className="row__hint">Для всех режимов</span>
+            </div>
+            <Switch checked={value.glowEnabled} onChange={glowEnabled => set({ glowEnabled })} />
+          </div>
+
+          {value.glowEnabled && (
+            <>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Интенсивность свечения</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={value.glowIntensity}
+                  onChange={glowIntensity => set({ glowIntensity })}
+                  format={item => `${Math.round(item * 100)}%`}
+                />
+              </div>
+              <div className="row">
+                <div className="row__text">
+                  <span className="row__label">Рассеивание свечения</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={60}
+                  step={1}
+                  value={value.glowSpread}
+                  onChange={glowSpread => set({ glowSpread })}
+                  format={item => `${item}px`}
+                />
+              </div>
+            </>
+          )}
+
           {spectrum && (
             <>
               <div className="row">
@@ -1325,7 +1572,7 @@ function VisualizerControls({
                   <span className="row__hint">Диапазон анализа, Гц</span>
                 </div>
                 <div className="range-pair">
-                  <Slider
+                  <NumberSlider
                     min={20}
                     max={16000}
                     step={10}
@@ -1333,21 +1580,25 @@ function VisualizerControls({
                     onChange={freqMin =>
                       set({ freqMin, freqMax: Math.max(freqMin + 100, value.freqMax) })
                     }
-                    format={item => `${item}`}
+                    suffix="Гц"
                   />
-                  <Slider
+                  <NumberSlider
                     min={100}
                     max={22000}
                     step={100}
                     value={value.freqMax}
                     onChange={freqMax => set({ freqMax: Math.max(value.freqMin + 100, freqMax) })}
-                    format={item => `${item}`}
+                    suffix="Гц"
                   />
                 </div>
               </div>
               <div className="row">
                 <div className="row__text">
                   <span className="row__label">Шкала частот</span>
+                  <span className="row__hint">
+                    Логарифм сжимает высокие частоты и даёт больше деталей в басе; линейно делит
+                    диапазон поровну
+                  </span>
                 </div>
                 <Segmented
                   value={value.freqScale}
@@ -1831,6 +2082,17 @@ function EqualizerPanel({ settings, refresh }: PanelProps): ReactElement {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="row">
+            <div className="row__text">
+              <span className="row__label">Растянуть на весь монитор</span>
+              <span className="row__hint">Окно займёт весь рабочий стол выбранного монитора</span>
+            </div>
+            <Switch
+              checked={active.settings.stretch}
+              onChange={stretch => void update({ stretch })}
+            />
           </div>
 
           <VisualizerControls

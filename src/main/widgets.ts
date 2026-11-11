@@ -256,6 +256,7 @@ export class WidgetManager {
 
     win.on('resize', () => {
       if (this.applyingBounds.has(key)) return
+      if (this.store.equalizerById(instance.id)?.settings.stretch) return
       const [width, height] = win.getSize()
       const timer = this.timers.get(`${key}:size`)
       if (timer) clearTimeout(timer)
@@ -286,6 +287,7 @@ export class WidgetManager {
     this.equalizerWins.set(instance.id, win)
     this.store.setEqualizerEnabled(instance.id, true)
     this.applyLayer({ type: 'equalizer', instanceId: instance.id })
+    this.applyEqualizerLayout(instance.id)
     return win
   }
 
@@ -441,6 +443,25 @@ export class WidgetManager {
       const instance = this.store.equalizerById(id)
       if (instance) this.openEqualizer(instance)
     }
+  }
+
+  applyEqualizerLayout(id: string): void {
+    const win = this.equalizerWins.get(id)
+    const instance = this.store.equalizerById(id)
+    if (!win || win.isDestroyed() || !instance) return
+    const bounds = win.getBounds()
+    this.applyingBounds.add(`equalizer:${id}`)
+    if (instance.settings.stretch) {
+      const wa = this.displayFor(instance.settings.displayId, bounds).workArea
+      win.setBounds(wa)
+    } else {
+      const width = windowWidth(instance.width)
+      const height = windowHeight(instance.height)
+      if (bounds.width !== width || bounds.height !== height) {
+        win.setBounds({ x: bounds.x, y: bounds.y, width, height })
+      }
+    }
+    this.applyingBounds.delete(`equalizer:${id}`)
   }
 
   centerEqualizer(id: string): void {

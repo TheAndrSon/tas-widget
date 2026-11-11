@@ -599,6 +599,39 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.number-slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 270px;
+}
+
+.number-slider input[type='range'] {
+  flex: 1;
+  accent-color: #62e6ff;
+  cursor: pointer;
+}
+
+.number-input {
+  width: 68px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  outline: none;
+  color-scheme: dark;
+}
+
+.number-suffix {
+  width: 20px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
 .range-pair {
   display: flex;
   flex-direction: column;

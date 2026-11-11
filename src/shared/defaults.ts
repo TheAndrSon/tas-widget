@@ -107,6 +107,7 @@ export function defaultEqualizerSettings(): EqualizerSettings {
   return {
     visualizer: structuredClone(DEFAULT_VISUALIZER),
     windowed: true,
+    stretch: false,
     displayId: null
   }
 }
